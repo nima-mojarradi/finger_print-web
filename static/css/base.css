@@ -1,0 +1,147 @@
+/* تنظیمات پایه */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Tahoma, sans-serif;
+}
+
+body {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f0f2f5;
+}
+
+/* هدر */
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background-color: #007bff;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 1000;
+}
+
+header .logo {
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+header nav ul {
+    display: flex;
+    list-style: none;
+}
+
+header nav ul li {
+    margin-left: 15px;
+}
+
+header nav ul li a {
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+/* دکمه منو برای موبایل */
+#menu-toggle {
+    display: none;
+    font-size: 1.5rem;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+}
+
+/* سایدبار */
+aside {
+    width: 200px;
+    background-color: #343a40;
+    color: white;
+    padding-top: 80px;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    right: 0;
+}
+
+aside ul {
+    list-style: none;
+}
+
+aside ul li {
+    padding: 15px 20px;
+}
+
+aside ul li a {
+    color: white;
+    text-decoration: none;
+}
+
+aside ul li a:hover {
+    background-color: #495057;
+    display: block;
+    border-radius: 4px;
+}
+
+/* محتوای اصلی */
+main {
+    flex: 1;
+    margin-right: 200px;
+    padding: 80px 20px 20px 20px;
+}
+
+/* استایل ریسپانسیو */
+@media (max-width: 768px) {
+
+    /* مخفی کردن سایدبار */
+    aside {
+        width: 200px;
+        right: -200px;
+        transition: right 0.3s ease;
+    }
+
+    aside.active {
+        right: 0;
+    }
+
+    /* دکمه منو نمایش داده شود */
+    #menu-toggle {
+        display: block;
+    }
+
+    /* منوی هدر به صورت عمودی */
+    header nav {
+        position: fixed;
+        top: 60px;
+        right: -200px;
+        width: 200px;
+        height: calc(100% - 60px);
+        background-color: #007bff;
+        transition: right 0.3s ease;
+        z-index: 999;
+    }
+
+    header nav.active {
+        right: 0;
+    }
+
+    header nav ul {
+        flex-direction: column;
+        padding: 20px;
+    }
+
+    header nav ul li {
+        margin: 10px 0;
+    }
+
+    main {
+        margin-right: 0;
+        padding-top: 80px;
+    }
+}

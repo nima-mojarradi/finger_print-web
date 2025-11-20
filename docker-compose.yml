@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+
+  rabbit:
+    image: rabbitmq:3-management-alpine
+    container_name: accounts-rabbit
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+      RABBITMQ_ERLANG_COOKIE: "SUPER_SECRET_COOKIE_1234567890_ABCDEF"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  elasticsearch:
+    image: elasticsearch:7.17.0
+    container_name: accounts-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  kibana:
+    image: kibana:7.17.0
+    container_name: accounts-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: accounts-app
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    command: python manage.py runserver 0.0.0.0:8000
+    depends_on:
+      - rabbit
+      - elasticsearch
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: accounts-celery_worker
+    volumes:
+      - .:/app
+    command: celery -A core worker -l info
+    depends_on:
+      - rabbit
+      - app
+
+volumes:
+  rabbitmq_data:
+  es_data:

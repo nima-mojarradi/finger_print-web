@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}پروفایل کاربر{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/profile.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+  <div class="user-info card">
+    <h2>{{ user.get_full_name }}</h2>
+    <p>نام کاربری: {{ user.username }}</p>
+    <p>ایمیل: {{ user.email }}</p>
+  </div>
+
+  <div class="attendance-chart card">
+    <h2>نمودار ساعات حضور</h2>
+    <canvas id="attendanceChart" data-chart='{{ chart_data|safe }}'></canvas>
+  </div>
+
+  <div class="recent-attendance card">
+    <h2>آخرین ثبت ساعت‌ها</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>تاریخ</th>
+          <th>ساعت ورود</th>
+          <th>ساعت خروج</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for att in recent_attendance %}
+        <tr>
+          <td>{{ att.date }}</td>
+          <td>{{ att.check_in|default:"-" }}</td>
+          <td>{{ att.check_out|default:"-" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="3">هیچ ثبت ساعتی وجود ندارد</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/profile.js' %}"></script>
+{% endblock %}

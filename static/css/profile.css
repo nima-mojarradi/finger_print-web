@@ -1,0 +1,47 @@
+.profile-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+}
+
+.card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.user-info h2 {
+    margin-bottom: 10px;
+}
+
+.recent-attendance table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.recent-attendance th, .recent-attendance td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
+
+.recent-attendance th {
+    background-color: #007bff;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .profile-container {
+        padding: 10px;
+    }
+
+    .card {
+        padding: 15px;
+    }
+
+    .recent-attendance table th, .recent-attendance table td {
+        padding: 6px;
+    }
+}
