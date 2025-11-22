@@ -124,9 +124,9 @@ class UserCreateView(LoginRequiredMixin, CreateView):
     model = CustomUser
     form_class = CustomUserForm
     template_name = "create_user.html"
+    success_url = reverse_lazy('user-create')
 
     def form_valid(self, form):
-        # تعیین نقش و شرکت بر اساس نقش کاربر لاگین شده
         user_request = self.request.user
         requested_role = form.cleaned_data.get('roles')
         company = form.cleaned_data.get('company')
@@ -137,22 +137,28 @@ class UserCreateView(LoginRequiredMixin, CreateView):
         elif user_request.roles == 'super_admin':
             form.instance.roles = requested_role
             if not company:
-                form.add_error('company', 'Super admin must provide company')
+                form.add_error('company', 'سوپر ادمین باید شرکت را انتخاب کند.')
                 return self.form_invalid(form)
         else:
-            form.add_error(None, 'Invalid role')
+            form.add_error(None, 'شما اجازه ایجاد کاربر ندارید.')
             return self.form_invalid(form)
 
-        # ایجاد رمز عبور تصادفی
-        from django.utils.crypto import get_random_string
-        random_password = get_random_string(length=10)
+        random_password = get_random_string(length=12)
         form.instance.set_password(random_password)
 
-        self.success_url = reverse_lazy('user-list')
-        response = super().form_valid(form)
-        # میتونی پیام موفقیت هم اضافه کنی
-        self.request.session['new_user_password'] = random_password
-        return response
+        messages.success(
+            self.request,
+            f"کاربر {form.instance.first_name} {form.instance.last_name} با موفقیت ایجاد شد."
+        )
+
+        messages.add_message(
+            self.request, 
+            messages.INFO, 
+            random_password, 
+            extra_tags='show_password'
+        )
+
+        return super().form_valid(form)
 
 # class AddFingerprintView(APIView):
 #     permission_classes = [IsAuthenticated, (IsNormalAdmin | IsSuperAdmin)]
