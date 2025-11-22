@@ -12,40 +12,11 @@
   </head>
   <body>
     <header>
-      <div class="logo">ثبت ساعتم</div>
-      <button id="menu-toggle">&#9776;</button>
-      <nav id="navbar">
-        <ul>
-          <li><a href="#">خانه</a></li>
-          <li><a href="#">گزارشات</a></li>
-          <li><a href="#">تنظیمات</a></li>
-        </ul>
-      </nav>
+      {% block header %}{% endblock %}
     </header>
 
     <aside id="sidebar">
-      <ul>
-        <li><a href="{% url 'profile' %}">پروفایل</a></li>
-
-
-        {% if user.roles == "user" %}
-        <li><a href="#">ثبت ساعت ورود</a></li>
-        <li><a href="#">ثبت ساعت خروج</a></li>
-        <li><a href="#">گزارش ساعات من</a></li>
-        {% endif %} {% if user.roles == "normal_admin" %}
-        <li><a href="#">افزودن کارمند</a></li>
-        <li><a href="#">افزودن اثر انگشت</a></li>
-        <li><a href="#">لیست کارمندها</a></li>
-        <li><a href="#">گزارش ساعات کارکنان</a></li>
-        {% endif %} {% if user.roles == "super_admin" %}
-        <li><a href="#">مدیریت شرکت‌ها</a></li>
-        <li><a href="#">افزودن شرکت جدید</a></li>
-        <li><a href="#">لیست کاربران کل سیستم</a></li>
-        <li><a href="#">ایجاد کاربر جدید</a></li>
-        <li><a href="#">افزودن اثر انگشت کاربر</a></li>
-        <li><a href="#">گزارش کلی ساعات حضور</a></li>
-        {% endif %}
-      </ul>
+      {% block side_bar %}{% endblock %}
     </aside>
 
     <main>{% block content %}{% endblock %}</main>

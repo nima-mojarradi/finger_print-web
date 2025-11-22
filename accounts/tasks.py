@@ -65,7 +65,7 @@ def log_to_elastic_task(self, log_payload):
         if es:
             es.index(
                 index=settings.ELASTICSEARCH_INDEX,
-                document=log_payload
+                body=log_payload
             )
             logger.debug("Log successfully sent to Elasticsearch.")
         else:

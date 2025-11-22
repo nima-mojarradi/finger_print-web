@@ -1,10 +1,11 @@
 from django.urls import path
 from .views import (
     LoginView,
-    # LogoutView,
-    # CreateUser,
-    # UserListView,
-    # UserDetailView,
+    LogoutView,
+    UserCreateView,
+    UserListView,
+    UserDetailView,
+    UserEditView,
     # CompanyListCreateView,
     # CompanyDetailView,
     # ChangePasswordView,
@@ -14,13 +15,15 @@ from .views import (
 
 urlpatterns = [
     path("", LoginView.as_view(), name="login"),
-    # path("logout/", LogoutView.as_view(), name="logout"),
+    path("logout/", LogoutView.as_view(), name="logout"),
     path("profile/", ProfileView.as_view(), name="profile"),
     
-    # path("users/", UserListView.as_view(), name="user-list"),
-    # path("users/create/", CreateUser.as_view(), name="user-create"),
+    path("users/", UserListView.as_view(), name="user-list"),
+    path("users/create/", UserCreateView.as_view(), name="user-create"),
     # path("users/change_password/", ChangePasswordView.as_view(), name="change_password"),
-    # path("users/<str:nationality_number>/", UserDetailView.as_view(), name="user-detail"),
+    path("users/<str:nationality_number>/", UserDetailView.as_view(), name="user-detail"),
+    path("users/<str:nationality_number>/edit/", UserEditView.as_view(), name="edit_user"),
+
     # path("users/<str:nationality_number>/add_fingerprint/", AddFingerprintView.as_view(), name="add_fingerprint"),
 
 

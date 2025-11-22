@@ -26,20 +26,6 @@
               ورود به سامانه
             </h3>
 
-            {% if messages %} {% for message in messages %}
-            <div
-              class="alert alert-{{ message.tags }} alert-dismissible fade show"
-              role="alert"
-            >
-              {{ message }}
-              <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="alert"
-              ></button>
-            </div>
-            {% endfor %} {% endif %}
-
             <form method="post" novalidate>
               {% csrf_token %}
 
@@ -81,7 +67,12 @@
               <small class="text-muted">سامانه حضور و غیاب پارک علم و فناوری</small>
             </div>
             <div>
-              <img src="{% static 'images/logo.png' %}" alt="I-SYS">
+              <div class="text-center mt-5 pb-4">
+                <img src="{% static 'images/i_sys3 (1).png' %}" 
+                    alt="I-SYS" 
+                    class="img-fluid" 
+                    style="max-width: 390px; width: auto; height: auto;">
+              </div>
             </div>
           </div>
         </div>

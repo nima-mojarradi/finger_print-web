@@ -1,0 +1,117 @@
+{% extends "base.html" %} 
+{% load static %}
+{% block title %}
+داشبورد
+{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/profile.css' %}" />
+<style>
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .action-bar {
+    display: flex;
+    gap: 10px;
+  }
+</style>
+{% endblock %} {% block header %}
+<h1>پنل کاربری {{user.first_name}} {{user.last_name}}</h1>
+{% endblock %} {% block side_bar %}
+<ul class="sidebar-menu">
+  <li><a href="{% url 'profile' %}">پروفایل من</a></li>
+  <li><a href="#">گزارش حضور</a></li>
+
+  {% if user.roles == 'normal_admin' %}
+  <li><a href="{% url 'user-list' %}">مدیریت کاربران شرکت</a></li>
+  {% endif %} {% if user.roles == 'super_admin' %}
+  <li><a href="#">مدیریت شرکت‌ها</a></li>
+  <li><a href="{% url 'user-list' %}">مدیریت همه کاربران</a></li>
+  <li><a href="#">مدیریت دستگاه ها </a></li>
+  {% endif %}
+
+  <li><a href="#">تغییر رمز عبور</a></li>
+  <li>
+    <form method="post" action="{% url 'logout' %}" style="display: inline">
+      {% csrf_token %}
+      <button
+        type="submit"
+        class="btn btn-link p-0 m-0"
+        style="color: inherit; text-decoration: none"
+      >
+        خروج
+      </button>
+    </form>
+  </li>
+</ul>
+{% endblock %} {% block content %}
+<div class="container-fluid profile-container">
+  <div class="dashboard-header card p-3 mb-4">
+        <div class="user-details">
+            <h3>{{ user.first_name }} {{ user.last_name }} خوش آمدید</h3>
+            <small class="text-muted">{{ user.roles }} of {{user.company}}</small>
+        </div>
+        
+        <div class="action-bar">
+            {% block dashboard_actions %}
+            {% endblock %}
+        </div>
+    </div>
+
+  <div class="row mb-4">{% block dashboard_stats %} {% endblock %}</div>
+
+  <div class="attendance-chart card mb-4">
+    <div class="card-header bg-light">
+      <h5 class="mb-0">نمودار ساعات حضور من</h5>
+    </div>
+    <div class="card-body">
+      <canvas id="attendanceChart" data-chart="{{ chart_data|safe }}"></canvas>
+    </div>
+  </div>
+
+  <div class="recent-attendance card">
+    <div class="card-header bg-light">
+      <h5 class="mb-0">آخرین ترددهای من</h5>
+    </div>
+    <div class="card-body">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>تاریخ</th>
+            <th>ساعت ورود</th>
+            <th>ساعت خروج</th>
+            <th>وضعیت</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for att in recent_attendance %}
+          <tr>
+            <td>{{ att.date }}</td>
+            <td class="text-success">{{ att.check_in|default:"-" }}</td>
+            <td class="text-danger">{{ att.check_out|default:"-" }}</td>
+            <td>
+              {% if att.check_in and att.check_out %}
+              <span class="badge bg-success">کامل</span>
+              {% else %}
+              <span class="badge bg-warning text-dark">ناقص</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" class="text-center text-muted">
+              هیچ ثبت ساعتی وجود ندارد
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/profile.js' %}"></script>
+{% block dashboard_js %}{% endblock %} {% endblock %}

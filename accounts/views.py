@@ -1,11 +1,17 @@
-#accounts
 from .utils import decode_base64
+from django.views.generic.edit import CreateView
 import json
+from django.contrib.auth import logout
+from .models import CustomUser, Company, Fingerprint
+from .permissions import IsNormalAdmin, IsSuperAdmin, IsUser
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView, View
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
+from django.views.generic.edit import UpdateView
+from django.urls import reverse_lazy
+from .forms import UserEditForm
 from rest_framework.authtoken.models import Token
 from rest_framework.authentication import TokenAuthentication
 from django.shortcuts import render, redirect
@@ -14,7 +20,8 @@ from django.contrib.auth import authenticate, login
 from django.contrib import messages
 from attendance.models import AttendanceEvent
 from django.utils.timezone import localtime
-from .forms import LoginForm
+from .forms import LoginForm, CustomUserForm
+from .serializers import UserUpdateSerializer
 from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 
@@ -47,16 +54,12 @@ class LoginView(View):
     
 
 class ProfileView(LoginRequiredMixin, TemplateView):
-    template_name = "profile.html"
+    template_name = "base_profile.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
-
-        # دریافت تمام رویدادهای حضور کاربر
-        events = AttendanceEvent.objects.filter(user=user)
-        
-        # سازماندهی حضور روزانه
+        events = AttendanceEvent.objects.filter(user=user)        
         daily_attendance = {}
         for event in events:
             day = event.timestamp.date()
@@ -72,7 +75,6 @@ class ProfileView(LoginRequiredMixin, TemplateView):
 
         sorted_days = sorted(daily_attendance.keys(), reverse=True)
 
-        # آخرین 10 حضور
         recent_attendance = []
         for day in sorted_days[:10]:
             recent_attendance.append({
@@ -82,7 +84,6 @@ class ProfileView(LoginRequiredMixin, TemplateView):
             })
         context['recent_attendance'] = recent_attendance
 
-        # آماده سازی داده برای Chart.js (آخرین 7 روز)
         last_7_days = sorted_days[:7][::-1]
 
         if last_7_days:
@@ -112,89 +113,46 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         context['user'] = user
         return context
     
-# class LogoutView(View):
-#     authentication_classes = [TokenAuthentication]
-#     permission_classes = [IsAuthenticated]
-
-#     def post(self, request):
-#         request.user.auth_token.delete()
-#         return redirect('')
+class LogoutView(View):
+    def post(self, request):
+        if hasattr(request.user, 'auth_token'):
+            request.user.auth_token.delete()
+        logout(request)
+        return redirect('login')  
     
-# class CreateUser(APIView):
-#     permission_classes = [IsAuthenticated, (IsNormalAdmin | IsSuperAdmin)]
+class UserCreateView(LoginRequiredMixin, CreateView):
+    model = CustomUser
+    form_class = CustomUserForm
+    template_name = "create_user.html"
 
-#     def post(self, request):
-#         if not request.data:
-#             return Response({"debug_error": "Request Data is EMPTY in View"}, status=400)
-#         if request.data.get("first_name") is None:
-#             return Response({"debug_error": "First Name is NONE"}, status=400)
-#         first_name = request.data.get("first_name")
-#         last_name = request.data.get("last_name")
-#         nationality_number = request.data.get("nationality_number")
-#         requested_role = request.data.get("roles", "user")
-#         fingerprints = request.data.get("fingerprints", [])
+    def form_valid(self, form):
+        # تعیین نقش و شرکت بر اساس نقش کاربر لاگین شده
+        user_request = self.request.user
+        requested_role = form.cleaned_data.get('roles')
+        company = form.cleaned_data.get('company')
 
-#         if not all([first_name, last_name, nationality_number]):
-#             return Response({"error": "first_name, last_name, nationality_number required"}, status=400)
-#         if CustomUser.objects.filter(nationality_number=nationality_number).exists():
-#             return Response({"error": "User already exists"}, status=400)
+        if user_request.roles == 'normal_admin':
+            form.instance.roles = 'user'
+            form.instance.company = user_request.company
+        elif user_request.roles == 'super_admin':
+            form.instance.roles = requested_role
+            if not company:
+                form.add_error('company', 'Super admin must provide company')
+                return self.form_invalid(form)
+        else:
+            form.add_error(None, 'Invalid role')
+            return self.form_invalid(form)
 
-#         if request.user.roles == 'normal_admin':
-#             role = 'user'
-#             company = request.user.company
-#         elif request.user.roles == 'super_admin':
-#             role = requested_role
-#             company_id = request.data.get("company_id")
-#             if not company_id:
-#                 return Response({"error": "Super admin must provide company_id"}, status=400)
-#             company = get_object_or_404(Company, id=company_id)
-#         else:
-#             return Response({"error": "Invalid role"}, status=403)
+        # ایجاد رمز عبور تصادفی
+        from django.utils.crypto import get_random_string
+        random_password = get_random_string(length=10)
+        form.instance.set_password(random_password)
 
-#         random_password = get_random_string(length=10)
-#         user = CustomUser.objects.create_user(
-#             nationality_number=nationality_number,
-#             password=random_password,
-#             first_name=first_name,
-#             last_name=last_name,
-#             company=company,
-#             roles=role,
-#         )
-
-#         for fp in fingerprints:
-#             finger_name = fp.get('finger_name')
-#             template_data_base64 = fp.get('template_data')
-#             binary_data = decode_base64(template_data_base64)
-#             if binary_data is None:
-#                 return Response({"error": f"Invalid Base64 data for finger {finger_name}"}, status=400)
-
-#             Fingerprint.objects.create(
-#                 user=user,
-#                 finger_name=finger_name,
-#                 template_data=binary_data
-#             )
-
-#         return Response({
-#             "message": "User created",
-#             "nationality_number": user.nationality_number,
-#             "password": random_password,
-#             "company": str(user.company)
-#         }, status=201)
-
-class UserProfileView(LoginRequiredMixin, TemplateView):
-    template_name = "profile.html"
-
-    def get(self,request,):
-        context = super().get_context_data()
-        user = self.request.user
-        context.update({
-            "nationality_number": user.nationality_number,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "roles": user.roles,
-            "company": user.company,
-        })
-        return render(request, 'profile.html', context=context)
+        self.success_url = reverse_lazy('user-list')
+        response = super().form_valid(form)
+        # میتونی پیام موفقیت هم اضافه کنی
+        self.request.session['new_user_password'] = random_password
+        return response
 
 # class AddFingerprintView(APIView):
 #     permission_classes = [IsAuthenticated, (IsNormalAdmin | IsSuperAdmin)]
@@ -225,48 +183,47 @@ class UserProfileView(LoginRequiredMixin, TemplateView):
 
 
 
-# class UserListView(APIView):
-#     permission_classes = [IsAuthenticated, (IsNormalAdmin | IsSuperAdmin)]
-
-#     def get(self, request):
-#         if request.user.roles == 'normal_admin':
-#             users = CustomUser.objects.filter(company=request.user.company)
-#         elif request.user.roles == 'super_admin':
-#             company_id = request.query_params.get("company_id")
-#             if company_id:
-#                 users = CustomUser.objects.filter(company_id=company_id)
-#             else:
-#                 users = CustomUser.objects.all()
-#         data = [{
-#             "nationality_number": u.nationality_number,
-#             "first_name": u.first_name,
-#             "last_name": u.last_name,
-#             "roles": u.roles,
-#             "company": str(u.company) if u.company else None
-#         } for u in users]
-#         return Response(data, status=200)
+class UserListView(View):
+    def get(self, request):
+        if request.user.roles == 'normal_admin':
+            users = CustomUser.objects.filter(company=request.user.company)
+        else:
+            users = CustomUser.objects.all()
+        return render(request, 'users.html', {"users": users})
 
 
-# class UserDetailView(APIView):
-#     permission_classes = [IsAuthenticated, (IsNormalAdmin | IsSuperAdmin)]
+class UserEditView(UpdateView):
+    model = CustomUser
+    form_class = UserEditForm
+    template_name = "edit_user.html"
+    slug_field = "nationality_number"
+    slug_url_kwarg = "nationality_number"
 
-#     def get(self, request, nationality_number):
-#         user = get_object_or_404(CustomUser, nationality_number=nationality_number)
-#         if request.user.roles == 'normal_admin' and user.company != request.user.company:
-#             return Response({"error": "No permission"}, status=403)
-#         return Response({
-#             "nationality_number": user.nationality_number,
-#             "first_name": user.first_name,
-#             "last_name": user.last_name,
-#             "roles": user.roles,
-#             "company": str(user.company) if user.company else None
-#         })
-#     def delete(self, request, nationality_number):
-#         user = get_object_or_404(CustomUser, nationality_number=nationality_number)
-#         if request.user.roles == 'normal_admin' and user.company != request.user.company:
-#             return Response({"error": "No permission"}, status=403)
-#         user.delete()
-#         return Response({"message": "User deleted"}, status=204)
+    def get_success_url(self):
+        return reverse_lazy("user-list")
+
+class UserDetailView(APIView):
+    permission_classes = [IsAuthenticated, (IsNormalAdmin | IsSuperAdmin)]
+
+    def put(self, request, nationality_number):
+        user = get_object_or_404(CustomUser, nationality_number=nationality_number)
+
+        if request.user.roles == 'normal_admin' and user.company != request.user.company:
+            return Response({"error": "No permission"}, status=403)
+
+        serializer = UserUpdateSerializer(user, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "User updated", "data": serializer.data}, status=200)
+
+        return Response(serializer.errors, status=400)
+    def delete(self, request, nationality_number):
+        user = get_object_or_404(CustomUser, nationality_number=nationality_number)
+        if request.user.roles == 'normal_admin' and user.company != request.user.company:
+            return Response({"error": "No permission"}, status=403)
+        user.delete()
+        return Response({"message": "User deleted"}, status=204)
 
 
 # class ChangePasswordView(APIView):
