@@ -11,7 +11,7 @@ click-repl==0.3.0
 CMRESHandler==1.0.0
 Django==5.2.7
 djangorestframework==3.16.1
-
+psycopg2==2.9.11
 # Elasticsearch 7.x برای CMRESHandler
 elasticsearch==7.13.4
 

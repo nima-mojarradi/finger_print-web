@@ -13,10 +13,8 @@
         </div>
         <div class="card-body">
 
-            {# --- بخش ۱: نمایش رمز عبور (اگر وجود داشته باشد) --- #}
             {% if messages %}
                 {% for message in messages %}
-                    {# چک می‌کنیم آیا این پیام حاوی تگ show_password هست یا نه #}
                     {% if 'show_password' in message.tags %}
                     <div class="alert alert-warning alert-dismissible fade show" role="alert">
                         <strong>رمز عبور موقت کاربر جدید:</strong><br>
@@ -34,10 +32,8 @@
                 {% endfor %}
             {% endif %}
 
-            {# --- بخش ۲: نمایش سایر پیام‌های سیستم (مثل پیام موفقیت) --- #}
             {% if messages %}
                 {% for message in messages %}
-                    {# این بار فقط پیام‌هایی را نشان می‌دهیم که تگ show_password ندارند #}
                     {% if 'show_password' not in message.tags %}
                     <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
                         {{ message }}
@@ -47,7 +43,6 @@
                 {% endfor %}
             {% endif %}
 
-            {# --- بخش ۳: فرم ایجاد کاربر --- #}
             <form method="post">
                 {% csrf_token %}
                 
