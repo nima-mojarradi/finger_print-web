@@ -10,6 +10,26 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+<<<<<<< HEAD
+=======
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  db:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: accounts_db
+      POSTGRES_USER: accounts_user
+      POSTGRES_PASSWORD: strongpass123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+>>>>>>> refs/remotes/origin/main
 
   elasticsearch:
     image: elasticsearch:7.17.0
@@ -35,7 +55,9 @@ services:
     ports:
       - "8000:8000"
     command: python manage.py runserver 0.0.0.0:8000
+    entrypoint: ["/app/entrypoint.sh"]
     depends_on:
+      - db
       - rabbit
       - elasticsearch
 
@@ -63,4 +85,8 @@ services:
 
 volumes:
   es_data:
+<<<<<<< HEAD
   rabbitmq_data:
+=======
+  postgres_data:
+>>>>>>> refs/remotes/origin/main

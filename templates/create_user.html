@@ -25,17 +25,76 @@
                         <p class="mb-0 text-danger">
                             این رمز فقط یک بار نمایش داده می‌شود. حتماً آن را کپی کنید!
                         </p>
+<<<<<<< HEAD
+=======
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+
+            {% if messages %}
+                {% for message in messages %}
+                    {% if 'show_password' not in message.tags %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                        {{ message }}
+>>>>>>> refs/remotes/origin/main
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                     {% endif %}
                 {% endfor %}
             {% endif %}
 
+<<<<<<< HEAD
             {% for message in messages %}
                 {% if 'show_password' not in message.tags %}
                 <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show">
                     {{ message }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+=======
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label class="form-label">نام</label>
+                    {{ form.first_name }}
+                    {% if form.first_name.errors %}
+                        <div class="text-danger small">{{ form.first_name.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">نام خانوادگی</label>
+                    {{ form.last_name }}
+                    {% if form.last_name.errors %}
+                        <div class="text-danger small">{{ form.last_name.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">کد ملی</label>
+                    {{ form.nationality_number }}
+                    {% if form.nationality_number.errors %}
+                        <div class="text-danger small">{{ form.nationality_number.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">نقش</label>
+                    {{ form.roles }}
+                    {% if form.roles.errors %}
+                        <div class="text-danger small">{{ form.roles.errors }}</div>
+                    {% endif %}
+                </div>
+
+                {% if request.user.roles == "super_admin" %}
+                <div class="mb-3">
+                    <label class="form-label">شرکت</label>
+                    {{ form.company }}
+                    {% if form.company.errors %}
+                        <div class="text-danger small">{{ form.company.errors }}</div>
+                    {% endif %}
+>>>>>>> refs/remotes/origin/main
                 </div>
                 {% endif %}
             {% endfor %}
