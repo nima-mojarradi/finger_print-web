@@ -99,7 +99,7 @@ class Address(models.Model):
 
 class Company(models.Model):
     title = models.CharField(max_length=250)
-    address = models.ForeignKey(Address, on_delete=models.CASCADE)
+    address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True)
     class Meta:
         verbose_name = 'Company'
         verbose_name_plural = 'Companies'

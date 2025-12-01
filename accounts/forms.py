@@ -1,5 +1,5 @@
 from django import forms
-from .models import CustomUser
+from .models import CustomUser, Company
 
 
 class LoginForm(forms.Form):
@@ -39,3 +39,10 @@ class UserEditForm(forms.ModelForm):
             'roles': forms.Select(attrs={'class': 'form-select'}),
             'company': forms.Select(attrs={'class': 'form-select'}),
         }
+
+
+
+class CompanyForm(forms.ModelForm):
+    class Meta:
+        model = Company
+        fields = ['title', 'address']

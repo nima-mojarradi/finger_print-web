@@ -94,3 +94,10 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         fields = ['first_name', 'last_name', 'roles', 'company']
         read_only_fields = ['nationality_number']
 
+
+
+
+class CompanySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Company
+        fields = ["id", "title", "address"]

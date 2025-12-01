@@ -1,0 +1,76 @@
+{% extends "base_profile.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/users.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<h2 style="text-align:center; margin-bottom: 20px;">لیست شرکت‌ها</h2>
+
+<a href="{% url 'company-create' %}" class="btn btn-success btn-lg shadow-sm">
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
+         class="bi bi-plus-circle-fill me-2" viewBox="0 0 16 16" style="vertical-align: -2px;">
+        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0V8h3a.5.5 0 0 0 0-1h-3V4z"/>
+    </svg>
+    افزودن شرکت جدید
+</a>
+
+<table class="users-table">
+    <thead>
+        <tr>
+            <th>نام شرکت</th>
+            <th>آدرس</th>
+            <th>عملیات</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for company in companies %}
+        <tr>
+            <td>{{ company.title }}</td>
+            <td>{{ company.address }}</td>
+
+            <td>
+                <a href="{% url 'company-edit' company.pk %}">
+                    <img src="{% static 'images/pen.png' %}" alt="edit" class="logos_td">
+                </a>
+
+                <img src="{% static 'images/delete.png' %}"
+                     alt="delete"
+                     class="delete-company"
+                     data-id="{{ company.pk }}"
+                     style="cursor:pointer;">
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const deleteButtons = document.querySelectorAll(".delete-company");
+
+    deleteButtons.forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const id = btn.getAttribute("data-id");
+
+            if (!confirm("آیا از حذف شرکت مطمئن هستید؟")) return;
+
+            const response = await fetch(`/companies/${id}/delete/`, {
+                method: "POST",
+                headers: { "X-CSRFToken": "{{ csrf_token }}" }
+            });
+
+            if (response.status === 200 || response.status === 204) {
+                location.reload();
+            } else {
+                alert("خطا در حذف شرکت");
+            }
+        });
+    });
+});
+</script>
+
+{% endblock %}

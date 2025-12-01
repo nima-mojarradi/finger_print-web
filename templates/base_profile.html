@@ -22,17 +22,17 @@
 {% endblock %} {% block side_bar %}
 <ul class="sidebar-menu">
   <li><a href="{% url 'profile' %}">پروفایل من</a></li>
-  <li><a href="#">گزارش حضور</a></li>
+  <li><a href="{% url 'attendance-report' %}">گزارش حضور</a></li>
 
   {% if user.roles == 'normal_admin' %}
   <li><a href="{% url 'user-list' %}">مدیریت کاربران شرکت</a></li>
   {% endif %} {% if user.roles == 'super_admin' %}
-  <li><a href="#">مدیریت شرکت‌ها</a></li>
+  <li><a href="{% url 'company-list' %}">مدیریت شرکت‌ها</a></li>
   <li><a href="{% url 'user-list' %}">مدیریت همه کاربران</a></li>
-  <li><a href="#">مدیریت دستگاه ها </a></li>
+  <li><a href="{% url 'device-list' %}">مدیریت دستگاه ها </a></li>
   {% endif %}
 
-  <li><a href="#">تغییر رمز عبور</a></li>
+  <li><a href="{% url 'change_password' %}">تغییر رمز عبور</a></li>
   <li>
     <form method="post" action="{% url 'logout' %}" style="display: inline">
       {% csrf_token %}

@@ -1,65 +1,67 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from .serializers import DeviceSerializer
+from django.shortcuts import render, get_object_or_404, redirect
+from django.views import View
 from .models import Device, DeviceLog
+from .forms import DeviceForm
+from django.views.generic import ListView
 
 
-class ManageDevices(APIView):
 
+class DeviceLogListView(ListView):
+    model = DeviceLog
+    template_name = "devices/device_logs.html"
+    context_object_name = "logs"
+    ordering = ['-timestamp']
+    paginate_by = 30
+
+class DeviceListView(View):
     def get(self, request):
         devices = Device.objects.all()
-        serializer = DeviceSerializer(devices, many=True)
-        return Response(serializer.data)
+        return render(request, "device_list.html", {"devices": devices})
 
+class DeviceCreateView(View):
+    def get(self, request):
+        form = DeviceForm()
+        return render(request, "device_form.html", {"form": form})
 
     def post(self, request):
-        serializer = DeviceSerializer(data=request.data)
-        if serializer.is_valid():
-            device = serializer.save()
+        form = DeviceForm(request.POST)
+        if form.is_valid():
+            device = form.save()
             DeviceLog.objects.create(
                 device=device,
                 status="created",
                 message="Device created"
             )
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return redirect("device-list")
+        return render(request, "device_form.html", {"form": form})
 
+class DeviceUpdateView(View):
+    def get(self, request, pk):
+        device = get_object_or_404(Device, pk=pk)
+        form = DeviceForm(instance=device)
+        return render(request, "device_form.html", {"form": form, "device": device})
 
-    def put(self, request):
-        device_id = request.query_params.get("id")
-        if not device_id:
-            return Response({"error": "id parameter is required"}, status=400)
-        try:
-            device = Device.objects.get(id=device_id)
-        except Device.DoesNotExist:
-            return Response({"error": "Device not found"}, status=404)
-        serializer = DeviceSerializer(device, data=request.data, partial=True)
-        if serializer.is_valid():
-            updated_device = serializer.save()
+    def post(self, request, pk):
+        device = get_object_or_404(Device, pk=pk)
+        form = DeviceForm(request.POST, instance=device)
+        if form.is_valid():
+            updated_device = form.save()
             DeviceLog.objects.create(
                 device=updated_device,
                 status="updated",
                 message="Device updated",
-                extra_data=request.data
+                extra_data=request.POST
             )
-            return Response(serializer.data)
-        return Response(serializer.errors, status=400)
+            return redirect("device-list")
+        return render(request, "device_form.html", {"form": form, "device": device})
 
-
-    def delete(self, request):
-        device_id = request.query_params.get("id")
-        if not device_id:
-            return Response({"error": "id parameter is required"}, status=400)
-        try:
-            device = Device.objects.get(id=device_id)
-        except Device.DoesNotExist:
-            return Response({"error": "Device not found"}, status=404)
+class DeviceDeleteView(View):
+    def post(self, request, pk):
+        device = get_object_or_404(Device, pk=pk)
         DeviceLog.objects.create(
             device=device,
             status="deleted",
             message="Device deleted"
         )
         device.delete()
-        return Response({"message": "Device deleted"}, status=200)
-
+        return redirect("device-list")

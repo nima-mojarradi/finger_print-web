@@ -1,0 +1,58 @@
+{% extends "base_profile.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/users.css' %}">
+{% endblock %}
+
+{% block content %}
+<h2 style="text-align:center; margin-bottom: 20px;">لیست دستگاه‌ها</h2>
+
+<table class="users-table">
+<thead>
+<tr>
+<th>شماره سریال</th>
+<th>IP</th>
+<th>پورت</th>
+<th>وضعیت</th>
+</tr>
+</thead>
+<tbody>
+{% for device in devices %}
+<tr data-id="{{ device.id }}">
+<td>{{ device.serial_number }}</td>
+<td>{{ device.ip_address }}</td>
+<td>{{ device.port }}</td>
+<td class="status-cell">
+{% if device.status == "online" %}
+<span class="badge bg-success">آنلاین</span>
+{% elif device.status == "offline" %}
+<span class="badge bg-danger">آفلاین</span>
+{% else %}
+<span class="badge bg-warning text-dark">خطا</span>
+{% endif %}
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+<script>
+const ws = new WebSocket('ws://' + window.location.host + '/ws/devices/');
+
+ws.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+    const row = document.querySelector(`tr[data-id="${data.id}"]`);
+    if (!row) return;
+
+    const statusCell = row.querySelector(".status-cell");
+    if (!statusCell) return;
+
+    statusCell.innerHTML = data.status === "online"
+        ? '<span class="badge bg-success">آنلاین</span>'
+        : data.status === "offline"
+        ? '<span class="badge bg-danger">آفلاین</span>'
+        : '<span class="badge bg-warning text-dark">خطا</span>';
+};
+</script>
+{% endblock %}

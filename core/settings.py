@@ -9,20 +9,22 @@ import sys
 import logging
 import json
 import socket
-from elasticsearch import Elasticsearch
+from celery.schedules import crontab
 from cmreslogging.handlers import CMRESHandler
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# ========================
 # Quick-start development settings
+# ========================
 SECRET_KEY = 'django-insecure-)pb)i6gy1_^a-2xhf-fy4vy$%ng=bjf%fzt=-fux@0hxaxjs_!'
 DEBUG = True
 ALLOWED_HOSTS = []
 
-AUTH_USER_MODEL = 'accounts.CustomUser'
-
-# Application definition
+# ========================
+# Applications
+# ========================
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -30,13 +32,23 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # Third-party
     'rest_framework',
     'rest_framework.authtoken',
+    'widget_tweaks',
+
+    # Local apps
     'accounts',
     'attendance',
     'devices',
 ]
 
+AUTH_USER_MODEL = 'accounts.CustomUser'
+
+# ========================
+# Middleware
+# ========================
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -45,15 +57,23 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    # Custom
     'accounts.middleware.ElasticsearchLogMiddleware',
 ]
 
+# ========================
+# REST Framework
+# ========================
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
     ]
 }
 
+# ========================
+# URLs & Templates
+# ========================
 ROOT_URLCONF = 'core.urls'
 
 TEMPLATES = [
@@ -73,7 +93,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
+# ========================
 # Database
+# ========================
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -81,45 +103,75 @@ DATABASES = {
     }
 }
 
+# ========================
 # Password validation
+# ========================
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+# ========================
 # Internationalization
+# ========================
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+# ========================
 # Static files
-STATIC_URL = '/static/' 
+# ========================
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Celery settings
+# ========================
+# Celery
+# ========================
 CELERY_BROKER_URL = "amqp://admin:admin123@rabbit:5672//"
-
-CELERY_RESULT_BACKEND = "rpc://"
+# CELERY_RESULT_BACKEND = "redis://redis:6379/2"
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'UTC' 
+CELERY_TIMEZONE = 'UTC'
 
-# Elasticsearch settings
-ELASTICSEARCH_HOST = 'http://elasticsearch:9200' 
+CELERY_BEAT_SCHEDULE = {
+    'check-every-hour': {
+        'task': 'devices.tasks.check_devices_status',
+        'schedule': crontab(minute=0, hour='*'),
+    },
+}
+
+# ========================
+# Elasticsearch
+# ========================
+ELASTICSEARCH_HOST = 'http://elasticsearch:9200'
 ELASTICSEARCH_INDEX = 'django_request_logs'
 
+# ========================
+# Redis Caching & Sessions
+# ========================
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django_redis.cache.RedisCache",
+#         "LOCATION": "redis://redis:6379/1",
+#     }
+# }
+# SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+
+# ========================
+# Logging
+# ========================
 LOGSTASH_HOST = os.getenv("LOGSTASH_HOST", "localhost")
 LOGSTASH_PORT = int(os.getenv("LOGSTASH_PORT", "5959"))
 
-# Custom JSON formatter for logs
 class JsonFormatter(logging.Formatter):
+    """Custom JSON formatter for logs"""
     def format(self, record):
         log_record = {
             "message": record.getMessage(),
@@ -130,7 +182,7 @@ class JsonFormatter(logging.Formatter):
         }
         return json.dumps(log_record)
 
-# Configure logging handlers
+# Logging handlers
 LOGGING_HANDLERS = {
     "console": {
         "class": "logging.StreamHandler",
@@ -138,12 +190,12 @@ LOGGING_HANDLERS = {
     }
 }
 
-# Only add Elasticsearch handler when not running Celery
+# Elasticsearch handler (فقط وقتی Celery نیست)
 if "celery" not in sys.argv:
     LOGGING_HANDLERS["elasticsearch"] = {
         "class": "cmreslogging.handlers.CMRESHandler",
         "hosts": [{"host": "elasticsearch", "port": 9200}],
-        "es_index_name": "django_logs",  # <- fixed parameter name
+        "es_index_name": "django_logs",
         "auth_type": CMRESHandler.AuthType.NO_AUTH,
     }
 
@@ -160,3 +212,4 @@ LOGGING = {
         "level": "INFO",
     },
 }
+
