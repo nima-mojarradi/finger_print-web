@@ -6,6 +6,7 @@ from .views import (
     UserListView,
     UserEditView,
     UserDetailView,
+    UserDeleteView,
     ProfileView,
     EnrollFingerprintView,
     AddFingerprintAPI,
@@ -15,6 +16,7 @@ from .views import (
     CompanyCreateView,
     CompanyEditView,
     CompanyDeleteView,
+    ShowTempPasswordView
 )
 
 urlpatterns = [
@@ -26,8 +28,12 @@ urlpatterns = [
     path('users/create/', UserCreateView.as_view(), name='user-create'),
     path('users/<str:nationality_number>/edit/', UserEditView.as_view(), name='user-edit'),
     path('users/<str:nationality_number>/', UserDetailView.as_view(), name='user-detail'),
-
-    path('users/<str:nationality_number>/fingerprint/', EnrollFingerprintView.as_view(), name='enroll_fingerprint'),
+    path('users/<str:nationality_number>/delete/', UserDeleteView.as_view(),
+         name='user-delete'),
+    path('show-temp-password/<str:nationality_number>/', 
+     ShowTempPasswordView.as_view(), name='show_temp_password'),
+    path('enroll-fingerprint/<str:nationality_number>/<str:finger_name>/',
+    EnrollFingerprintView.as_view(), name='enroll_fingerprint'),
     path('api/users/<str:nationality_number>/fingerprint/add/', AddFingerprintAPI.as_view(), name='add_fingerprint'),
 
     path('api/attendance/fingerprint/', FingerprintAttendanceView.as_view(), name='fingerprint_attendance'),

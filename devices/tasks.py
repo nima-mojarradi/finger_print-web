@@ -6,7 +6,6 @@ from accounts.tasks import log_to_elastic_task
 
 
 def check_port(ip, port, timeout=3):
-    """پینگ TCP برای تشخیص آنلاین بودن"""
     try:
         s = socket.create_connection((ip, port), timeout=timeout)
         s.close()
@@ -17,9 +16,7 @@ def check_port(ip, port, timeout=3):
 
 @shared_task
 def check_devices_status():
-    """
-    هر 1 دقیقه وضعیت همه دستگاه‌ها را چک می‌کند.
-    """
+
     devices = Device.objects.all()
 
     for device in devices:
@@ -27,7 +24,6 @@ def check_devices_status():
 
         new_status = "online" if is_online else "offline"
 
-        # وضعیت تغییر نکرد → بی‌خیال
         if new_status == device.status:
             continue
 

@@ -1,41 +1,93 @@
-{% extends "base_profile.html" %}
+{% extends "base_admin_page.html" %}
 {% load static %}
 
-{% block content %}
-<div style="max-width: 500px; margin: 50px auto; text-align: center; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); background-color: #f9f9f9;">
-    <h2 style="margin-bottom: 30px;">ثبت اثرانگشت برای {{ user.first_name }} {{ user.last_name }}</h2>
-    
-    <p style="font-size: 18px; margin-bottom: 20px;">لطفاً انگشت خود را روی دستگاه قرار دهید</p>
-    
-    <div id="statusMessage" style="font-size: 16px; color: #555; margin-bottom: 20px;">در انتظار اسکن اثرانگشت...</div>
+{% block admin_content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4>ثبت اثرانگشت کاربر</h4>
+                </div>
+                <div class="card-body text-center p-5">
+                    <h5>کاربر: {{ user.first_name }} {{ user.last_name }}</h5>
+                    <p class="lead mt-4">
+                        لطفاً انگشت <strong class="text-primary">{{ finger_display }}</strong> را روی دستگاه قرار دهید.
+                    </p>
 
-    <div id="successMessage" style="font-size: 16px; color: green;"></div>
-    <div id="errorMessage" style="font-size: 16px; color: red;"></div>
+                    <div id="status" class="mt-4 fs-4"></div>
+
+                    <button id="startEnroll" class="btn btn-success btn-lg mt-4 px-5">
+                        شروع ثبت اثرانگشت
+                    </button>
+
+                    <div class="mt-4">
+                        <a href="{% url 'user-list' %}" class="btn btn-outline-secondary">بعداً ثبت کنم</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
-function checkFingerprintStatus() {
-    // اینجا endpoint بکند که دستگاه به آن داده ارسال می‌کند
-    fetch("{% url 'fingerprint-attendance' %}?user={{ user.nationality_number }}")
-        .then(response => response.json())
-        .then(data => {
-            if(data.status === "success"){
-                document.getElementById('statusMessage').innerText = "اثر انگشت با موفقیت ثبت شد!";
-                document.getElementById('successMessage').innerText = `ورود/خروج شما ثبت شد: ${data.event_type} در ساعت ${data.timestamp}`;
-                document.getElementById('errorMessage').innerText = "";
-            } else if(data.status === "waiting"){
-                // هنوز اثرانگشت ثبت نشده، دوباره بررسی کن
-                setTimeout(checkFingerprintStatus, 2000);
-            } else {
-                document.getElementById('errorMessage').innerText = "خطا در ثبت اثرانگشت: " + data.message;
-            }
-        })
-        .catch(err => {
-            document.getElementById('errorMessage').innerText = "خطای شبکه: " + err;
-            setTimeout(checkFingerprintStatus, 5000);
-        });
-}
+let enrolling = false;
 
-checkFingerprintStatus();
+document.getElementById('startEnroll').addEventListener('click', function() {
+    if (enrolling) return;
+    enrolling = true;
+    document.getElementById('status').innerHTML = '<span class="text-info">در حال انتظار برای اسکن انگشت...</span>';
+
+    // این بخش باید با SDK دستگاه شما هماهنگ بشه
+    // فرض: دستگاه یک endpoint داره که وقتی انگشت اسکن شد، template رو برمی‌گردونه
+    // اینجا یک مثال ساده با polling فرض می‌کنیم
+
+    function checkDevice() {
+        fetch('/api/get-fingerprint-template/')  // ← این رو باید خودت پیاده کنی (یا از JS SDK دستگاه)
+            .then(res => res.json())
+            .then(data => {
+                if (data.template_data) {
+                    sendToServer(data.template_data);
+                } else if (data.waiting) {
+                    setTimeout(checkDevice, 2000);
+                } else {
+                    document.getElementById('status').innerHTML = '<span class="text-danger">خطا: ' + (data.error || 'اسکن ناموفق') + '</span>';
+                    enrolling = false;
+                }
+            })
+            .catch(() => {
+                document.getElementById('status').innerHTML = '<span class="text-danger">خطا در ارتباط با دستگاه</span>';
+                enrolling = false;
+            });
+    }
+
+    function sendToServer(template_data) {
+        fetch("{% url 'add_fingerprint' user.nationality_number %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({
+                finger_name: "{{ selected_finger }}",
+                template_data: template_data
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                document.getElementById('status').innerHTML = '<span class="text-danger">' + data.error + '</span>';
+                enrolling = false;
+            } else {
+                document.getElementById('status').innerHTML = '<span class="text-success">✓ اثرانگشت با موفقیت ثبت شد!</span>';
+                setTimeout(() => {
+                    window.location.href = "{% url 'show_temp_password' user.nationality_number %}";
+                }, 2000);
+            }
+        });
+    }
+
+    checkDevice();
+});
 </script>
 {% endblock %}

@@ -1,101 +1,68 @@
-<div class="table-responsive shadow rounded-4 overflow-hidden">
-    {% if page_obj %}
-    <table class="attendance-table table table-hover align-middle mb-0">
-        <thead>
+{% load custom_filters %}
+{% if page_obj %}
+<table class="attendance-table table table-hover align-middle mb-0">
+    <thead class="table-primary text-white">
+        <tr>
+            <th>کاربر</th>
+            <th>وضعیت</th>
+            <th>تاریخ و ساعت</th>
+            <th>ساعت کاری روز</th>
+            <th>تأیید شده توسط</th>
+            <th>دستگاه</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for att in page_obj %}
             <tr>
-                <th>کاربر</th>
-                <th>وضعیت</th>
-                <th>تاریخ و ساعت</th>
-                <th>ساعت کاری روز</th>
-                <th>تأیید شده توسط</th>
-                <th>دستگاه</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for att in page_obj %}
-            {% with key=att.user_id|stringformat:"s"|add:"_"|add:att.timestamp.date|stringformat:"s" %}
-            <tr>
-                <td class="fw-semibold text-primary">
-                    {% if att.user.nationality_number %}
-                        <div class="small text-muted">{{ att.user.nationality_number }}</div>
-                    {% endif %}
-                    {{ att.user.first_name }} {{ att.user.last_name }}
-                </td>
+                <td>{{ att.user.first_name }} {{ att.user.last_name }}</td>
+                <td>{{ att.event_type }}</td>
+                <td>{{ att.timestamp|date:"Y-m-d H:i" }}</td>
                 <td>
-                    {% if att.event_type == "in" %}
-                        <span class="badge-in">ورود</span>
-                    {% else %}
-                        <span class="badge-out">خروج</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <div class="fw-bold">{{ att.timestamp|date:"d F Y" }}</div>
-                    <div class="text-success small">{{ att.timestamp|time:"H:i:s" }}</div>
-                </td>
-                <td>
-                    {% with work_hours=work_hours_dict.key %}
-                        {% if work_hours %}
-                            {{ work_hours.total_seconds|floatformat:2|divisibleby:3600 }} ساعت
+                    {% with hours=work_hours_dict|get_daily_hours:att %}
+                        {% if hours %}
+                            <strong>{{ hours|floatformat:1 }}</strong> ساعت
                         {% else %}
-                            —
+                            <span class="text-muted">—</span>
                         {% endif %}
                     {% endwith %}
                 </td>
-                <td>
-                    <span class="text-muted">{{ att.verified_by|default:"—" }}</span>
-                </td>
-                <td>
-                    <span class="device-code">{{ att.device_id|default:"—" }}</span>
-                </td>
-            </tr>
-            {% endwith %}
-            {% empty %}
-            <tr>
-                <td colspan="6" class="text-center py-5 text-muted fs-5">
-                    هیچ رکوردی یافت نشد
-                </td>
+                <td>{{ att.verified_by|default:"-" }}</td>
+                <td>{{ att.device_id|default:"-" }}</td>
             </tr>
             {% endfor %}
-        </tbody>
-    </table>
+    </tbody>
+</table>
 
-    <!-- صفحه‌بندی -->
-    <div class="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-3">
-        <div class="text-muted small">
-            نمایش <strong>{{ page_obj.start_index }}</strong> تا <strong>{{ page_obj.end_index }}</strong>
-            از <strong>{{ page_obj.paginator.count }}</strong> رکورد
-        </div>
-
-        <div class="btn-group shadow-sm" role="group">
+<div class="d-flex justify-content-center mt-3">
+    <nav>
+        <ul class="pagination">
             {% if page_obj.has_previous %}
-                <button class="btn btn-outline-primary"
-                        hx-get="?page={{ page_obj.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode|cut:'&page='|cut:'page=' }}{% endif %}"
-                        hx-target="#reportResults" hx-swap="innerHTML">
-                    قبلی
-                </button>
-            {% else %}
-                <button class="btn btn-outline-secondary disabled">قبلی</button>
+                <li class="page-item">
+                    <a class="page-link"
+                        hx-get="?page={{ page_obj.previous_page_number }}{% if request.GET.user %}&user={{request.GET.user}}{% endif %}{% if request.GET.event_type %}&event_type={{request.GET.event_type}}{% endif %}{% if request.GET.start_date %}&start_date={{request.GET.start_date}}{% endif %}{% if request.GET.end_date %}&end_date={{request.GET.end_date}}{% endif %}"
+                        hx-target="#reportResults"
+                        hx-swap="innerHTML">
+                        قبلی
+                    </a>
+                </li>
             {% endif %}
 
-            <button class="btn btn-primary disabled px-4">
-                صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}
-            </button>
+            <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
 
             {% if page_obj.has_next %}
-                <button class="btn btn-outline-primary"
-                        hx-get="?page={{ page_obj.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode|cut:'&page='|cut:'page=' }}{% endif %}"
-                        hx-target="#reportResults" hx-swap="innerHTML">
-                    بعدی
-                </button>
-            {% else %}
-                <button class="btn btn-outline-secondary disabled">بعدی</button>
+                <li class="page-item">
+                    <a class="page-link"
+                        hx-get="?page={{ page_obj.next_page_number }}{% if request.GET.user %}&user={{request.GET.user}}{% endif %}{% if request.GET.event_type %}&event_type={{request.GET.event_type}}{% endif %}{% if request.GET.start_date %}&start_date={{request.GET.start_date}}{% endif %}{% if request.GET.end_date %}&end_date={{request.GET.end_date}}{% endif %}"
+                        hx-target="#reportResults"
+                        hx-swap="innerHTML">
+                        بعدی
+                    </a>
+                </li>
             {% endif %}
-        </div>
-    </div>
-    {% else %}
-    <div class="text-center py-5 my-5">
-        <h4 class="text-muted mt-3">هیچ رکوردی برای نمایش وجود ندارد</h4>
-        <p class="text-muted">فیلترها را تغییر دهید یا بازه زمانی دیگری انتخاب کنید.</p>
-    </div>
-    {% endif %}
+        </ul>
+    </nav>
 </div>
+
+{% else %}
+<div class="text-center py-4 text-muted">هیچ داده‌ای یافت نشد</div>
+{% endif %}

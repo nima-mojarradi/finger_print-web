@@ -1,5 +1,9 @@
+from pyexpat.errors import messages
+from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
+from django.contrib.auth.mixins import LoginRequiredMixin
+
 from .models import Device, DeviceLog
 from .forms import DeviceForm
 from django.views.generic import ListView
@@ -8,7 +12,7 @@ from django.views.generic import ListView
 
 class DeviceLogListView(ListView):
     model = DeviceLog
-    template_name = "devices/device_logs.html"
+    template_name = "device_logs.html"
     context_object_name = "logs"
     ordering = ['-timestamp']
     paginate_by = 30
@@ -55,13 +59,13 @@ class DeviceUpdateView(View):
             return redirect("device-list")
         return render(request, "device_form.html", {"form": form, "device": device})
 
-class DeviceDeleteView(View):
+class DeviceDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
+        if request.user.roles != "super_admin":
+            return JsonResponse({"error": "فقط سوپر ادمین می‌تواند حذف کند."}, status=403)
+        
         device = get_object_or_404(Device, pk=pk)
-        DeviceLog.objects.create(
-            device=device,
-            status="deleted",
-            message="Device deleted"
-        )
         device.delete()
-        return redirect("device-list")
+        
+        return JsonResponse({"success": "دستگاه با موفقیت حذف شد."}, status=200)
+

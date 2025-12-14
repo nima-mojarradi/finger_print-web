@@ -1,107 +1,72 @@
-{% extends 'base_profile.html' %}
-{% load static %}
+{% extends 'base_admin_page.html' %}
+{% load static widget_tweaks %}
 
-{% block extra_css %}
-<style>
-    .filter-card {
-        background: #fff;
-        border-radius: 16px;
-        padding: 28px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        margin: 30px 0;
-        border: 1px solid #e0e0e0;
-    }
-    .table-container {
-        background: white;
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        margin-top: 20px;
-    }
-    .attendance-table thead {
-        background: linear-gradient(135deg, #28a745, #20c997);
-        color: white;
-    }
-    .badge-in  { background-color: #0d6efd !important; color: white; }
-    .badge-out { background-color: #dc3545 !important; color: white; }
-</style>
-<script src="https://unpkg.com/htmx.org@1.9.12"></script>
-{% endblock %}
+{% block page_title %}گزارش حضور و غیاب{% endblock %}
 
-{% block content %}
-<h2 class="text-center my-5 text-primary fw-bold">گزارش حضور و غیاب</h2>
+{% block admin_content %}
 
-<div class="filter-card">
-    <form id="filterForm"
-          hx-get="{% url 'attendance-report' %}"
-          hx-target="#reportResults"
-          hx-swap="innerHTML"
-          hx-trigger="change from:#filterForm delay:400ms, submit"
-          hx-push-url="true">
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-primary fw-bold">گزارش جامع تردد کاربران</h2>
+    
+    <div>
+        <a href="?export=csv{{ request.GET.urlencode|slice:":0" }}{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}" 
+           class="btn btn-success btn-sm me-2">
+            دانلود CSV
+        </a>
+        <a href="?export=xlsx{{ request.GET.urlencode|slice:":0" }}{% if request.GET %}&{{ request.GET.urlencode }}{% endif %}" 
+           class="btn btn-danger btn-sm">
+            دانلود Excel
+        </a>
+    </div>
+</div>
 
-        <div class="row g-3 align-items-end">
-            <!-- فیلتر کاربر -->
-            <div class="col-md-3">
-                <label class="form-label fw-bold">کاربر</label>
-                <select name="user" class="form-select form-select-sm">
-                    <option value="">همه کاربران</option>
-                    {% for u in users %}
-                        <option value="{{ u.nationality_number }}"
-                            {% if filter_values.user == u.nationality_number %}selected{% endif %}>
-                            {{ u.first_name }} {{ u.last_name }}
-                            {% if u.nationality_number %}({{ u.nationality_number }}){% endif %}
+<!-- فیلترها -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body p-4">
+        <h5 class="mb-4 text-dark fw-bold">فیلتر گزارش</h5>
+        <form id="filterForm" hx-get="{% url 'attendance-report' %}" hx-target="#reportResults" hx-swap="innerHTML" hx-indicator="#loading">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">کاربر</label>
+                    <select name="user" class="form-select">
+                        <option value="">همه کاربران</option>
+                        {% for u in users %}
+                        <option value="{{ u.nationality_number }}" {% if request.GET.user == u.nationality_number %}selected{% endif %}>
+                            {{ u.first_name }} {{ u.last_name }} - {{ u.nationality_number }}
                         </option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <!-- فیلتر وضعیت -->
-            <div class="col-md-2">
-                <label class="form-label fw-bold">وضعیت</label>
-                <select name="status" class="form-select form-select-sm">
-                    <option value="">همه</option>
-                    <option value="complete"   {% if filter_values.status == "complete" %}selected{% endif %}>کامل</option>
-                    <option value="incomplete" {% if filter_values.status == "incomplete" %}selected{% endif %}>ناقص</option>
-                </select>
-            </div>
-
-            <!-- فیلتر بازه تاریخ -->
-            <div class="col-md-2">
-                <label class="form-label fw-bold">از تاریخ</label>
-                <input type="date" name="start_date" class="form-control form-control-sm" value="{{ filter_values.start_date }}">
-            </div>
-
-            <div class="col-md-2">
-                <label class="form-label fw-bold">تا تاریخ</label>
-                <input type="date" name="end_date" class="form-control form-control-sm" value="{{ filter_values.end_date }}">
-            </div>
-
-            <!-- دکمه‌ها -->
-            <div class="col-md-3 d-flex flex-column gap-2">
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-success flex-fill" onclick="exportReport('csv')">
-                        <i class="bi bi-file-earmark-spreadsheet"></i> CSV
-                    </button>
-                    <button type="button" class="btn btn-info text-white flex-fill" onclick="exportReport('xlsx')">
-                        <i class="bi bi-file-earmark-excel"></i> Excel
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">نوع تردد</label>
+                    <select name="event_type" class="form-select">
+                        <option value="">همه</option>
+                        <option value="in" {% if request.GET.event_type == 'in' %}selected{% endif %}>ورود</option>
+                        <option value="out" {% if request.GET.event_type == 'out' %}selected{% endif %}>خروج</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">از تاریخ</label>
+                    <input type="date" name="start_date" class="form-control" value="{{ request.GET.start_date }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">تا تاریخ</label>
+                    <input type="date" name="end_date" class="form-control" value="{{ request.GET.end_date }}">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <span id="loading" class="spinner-border spinner-border-sm me-2" style="display:none"></span>
+                        اعمال فیلتر
                     </button>
                 </div>
             </div>
-        </div>
-    </form>
+        </form>
+    </div>
 </div>
 
-<div id="reportResults" class="table-container mt-3">
+<!-- جدول نتایج -->
+<div id="reportResults">
     {% include "attendance_report_table.html" %}
 </div>
 
-<script>
-function exportReport(type) {
-    const form = document.getElementById('filterForm');
-    const params = new URLSearchParams(new FormData(form));
-    params.set('export', type);
-    params.delete('page');
-    window.location.href = "{% url 'attendance-report' %}?" + params.toString();
-}
-</script>
 {% endblock %}

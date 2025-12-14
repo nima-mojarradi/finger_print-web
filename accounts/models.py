@@ -72,11 +72,13 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     nationality_number = models.CharField(max_length=10, primary_key=True)
     first_name = models.CharField(max_length=250)
     last_name = models.CharField(max_length=250)
-    company = models.ForeignKey('Company', on_delete=models.CASCADE, null=True, blank=True)
+    company = models.ForeignKey('Company', on_delete=models.SET_NULL, null=True, blank=True)
     roles = models.CharField(max_length=250, choices=ROLES_OPTIONS)
+    is_active = models.BooleanField(default=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     USERNAME_FIELD = 'nationality_number'
-    REQUIRED_FIELDS = ['first_name', 'last_name', 'company', 'roles', 'email']
+    REQUIRED_FIELDS = ['first_name', 'last_name']  # فقط نام و نام خانوادگی کافیه
 
     objects = CustomUserManager()
 
@@ -100,6 +102,8 @@ class Address(models.Model):
 class Company(models.Model):
     title = models.CharField(max_length=250)
     address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True)
+    is_active = models.BooleanField(default=True) 
+    deleted_at = models.DateTimeField(null=True, blank=True)
     class Meta:
         verbose_name = 'Company'
         verbose_name_plural = 'Companies'

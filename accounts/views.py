@@ -1,5 +1,7 @@
 import json
 from logging import INFO
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import update_session_auth_hash
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import TemplateView, View
 from django.views.generic.edit import CreateView, UpdateView
@@ -18,8 +20,11 @@ from .forms import LoginForm, CustomUserForm, UserEditForm, CompanyForm
 from .serializers import UserUpdateSerializer
 from attendance.models import AttendanceEvent
 from .utils import decode_base64
+from django.urls import reverse
 from datetime import timedelta
-
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Q
+from django.utils.timezone import now, localtime
 
 class LoginView(View):
 
@@ -38,8 +43,9 @@ class LoginView(View):
 
             if user:
                 login(request, user)
-                messages.success(request, f"ورود موفقیت‌آمیز، خوش آمدید {user.first_name}")
+                messages.success(request, f"ورود موفقیت‌آمیز، خوش آمدید {user.first_name}!")
                 return redirect('profile')
+            
             else:
                 form.add_error(None, "کد ملی یا رمز عبور اشتباه است.")
 
@@ -47,21 +53,22 @@ class LoginView(View):
 
 
 class LogoutView(View):
-    def post(self, request):
+    def get(self, request):
         if hasattr(request.user, 'auth_token'):
             request.user.auth_token.delete()
         logout(request)
-        return redirect('login')  
+        return redirect('login')
 
-# ---------------------- PROFILE ----------------------
+
 
 class ProfileView(LoginRequiredMixin, TemplateView):
-    template_name = "base_profile.html"
+    template_name = "base_profile.html"  
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
-        events = AttendanceEvent.objects.filter(user=user)        
+        events = AttendanceEvent.objects.filter(user=user).order_by('timestamp')
+
         daily_attendance = {}
         for event in events:
             day = event.timestamp.date()
@@ -77,26 +84,40 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         sorted_days = sorted(daily_attendance.keys(), reverse=True)
 
         recent_attendance = []
+        current_time = localtime(now())
+
         for day in sorted_days[:10]:
+            check_in = daily_attendance[day]['check_in']
+            check_out = daily_attendance[day]['check_out']
+
+            if check_in and check_out:
+                hours = round((check_out - check_in).total_seconds() / 3600, 2)
+                status = "کامل"
+            elif check_in:
+                hours = round((current_time - check_in).total_seconds() / 3600, 2)
+                status = "در حال کار"
+            else:
+                hours = 0
+                status = "غایب"
+
             recent_attendance.append({
                 'date': day,
-                'check_in': daily_attendance[day]['check_in'],
-                'check_out': daily_attendance[day]['check_out']
+                'check_in': check_in,
+                'check_out': check_out,
+                'hours': hours,
+                'status': status
             })
+
         context['recent_attendance'] = recent_attendance
 
         last_7_days = sorted_days[:7][::-1]
-        if last_7_days:
-            labels = [day.strftime("%Y-%m-%d") for day in last_7_days]
-            data = []
-            for day in last_7_days:
-                check_in = daily_attendance[day]['check_in']
-                check_out = daily_attendance[day]['check_out']
-                hours = round((check_out - check_in).total_seconds()/3600, 2) if check_in and check_out else 0
-                data.append(hours)
-        else:
-            labels = []
-            data = []
+        labels = [day.strftime("%Y-%m-%d") for day in last_7_days]
+        data = []
+        for day in last_7_days:
+            check_in = daily_attendance[day]['check_in']
+            check_out = daily_attendance[day]['check_out']
+            hours = round((check_out - check_in).total_seconds() / 3600, 2) if check_in and check_out else 0
+            data.append(hours)
 
         chart_data = {
             "labels": labels,
@@ -108,12 +129,9 @@ class ProfileView(LoginRequiredMixin, TemplateView):
                 "borderWidth": 1
             }]
         }
-
         context['chart_data'] = json.dumps(chart_data)
         context['user'] = user
         return context
-
-# ---------------------- USER MANAGEMENT ----------------------
 
 class UserCreateView(LoginRequiredMixin, CreateView):
     model = CustomUser
@@ -128,6 +146,7 @@ class UserCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         user_request = self.request.user
+
         if user_request.roles == 'normal_admin':
             form.instance.roles = 'user'
             form.instance.company = user_request.company
@@ -145,33 +164,72 @@ class UserCreateView(LoginRequiredMixin, CreateView):
         random_password = get_random_string(length=12)
         form.instance.set_password(random_password)
         form.instance.is_active = True
-        response = super().form_valid(form)
 
-        messages.success(
-            self.request,
-            f"کاربر «{form.instance.first_name} {form.instance.last_name}» با موفقیت ایجاد شد."
-        )
-        messages.add_message(
-            self.request,
-            INFO,
-            random_password,
-            extra_tags='show_password'
-        )
+        # اول کاربر رو ذخیره کن
+        user = form.save()  # اینجا کاربر ذخیره می‌شه
 
-        # ریدایرکت به صفحه ثبت اثرانگشت
-        return redirect('enroll_fingerprint', nationality_number=form.instance.nationality_number)
+        # پیام‌ها رو اضافه کن
+        messages.success(self.request, f"کاربر «{user.first_name} {user.last_name}» با موفقیت ایجاد شد.")
+        messages.add_message(self.request, messages.INFO, random_password, extra_tags='temp_password')
+        messages.add_message(self.request, messages.INFO, form.cleaned_data['selected_finger'], extra_tags='selected_finger')
+
+        # حالا ریدایرکت کن
+        return redirect('show_temp_password', nationality_number=user.nationality_number)
 
     def form_invalid(self, form):
         messages.error(self.request, "لطفاً خطاهای فرم را برطرف کنید.")
         return super().form_invalid(form)
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user  
+        return kwargs
 
 class UserListView(LoginRequiredMixin, View):
-    def get(self, request):
+    template_name = 'users.html'
+    paginate_by = 15  
+
+    def get_queryset(self, request):
+        queryset = CustomUser.objects.filter(is_active=True).select_related('company')
+
         if request.user.roles == 'normal_admin':
-            users = CustomUser.objects.filter(company=request.user.company)
-        else:
-            users = CustomUser.objects.all()
-        return render(request, 'users.html', {"users": users})
+            queryset = queryset.filter(company=request.user.company)
+        elif request.user.roles != 'super_admin':
+            messages.error(request, "شما دسترسی به این صفحه ندارید.")
+            return CustomUser.objects.none()
+
+        q = request.GET.get('q', '').strip()
+        if q:
+            queryset = queryset.filter(
+                Q(nationality_number__icontains=q) |
+                Q(first_name__icontains=q) |
+                Q(last_name__icontains=q) |
+                Q(company__title__icontains=q)
+            )
+
+        queryset = queryset.order_by('first_name', 'last_name')
+        return queryset, q
+
+    def get(self, request):
+        queryset, search_query = self.get_queryset(request)
+
+        paginator = Paginator(queryset, self.paginate_by)
+        page = request.GET.get('page')
+
+        try:
+            users = paginator.page(page)
+        except PageNotAnInteger:
+            users = paginator.page(1)
+        except EmptyPage:
+            users = paginator.page(paginator.num_pages)
+
+        context = {
+            'users': users,
+            'search_query': search_query,
+            'paginator': paginator,
+            'page_obj': users,
+        }
+        return render(request, self.template_name, context)
 
 class UserEditView(UpdateView):
     model = CustomUser
@@ -182,6 +240,11 @@ class UserEditView(UpdateView):
 
     def get_success_url(self):
         return reverse_lazy("user-list")
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user  # کاربر جاری رو بده
+        return kwargs
 
 class UserDetailView(APIView):
     permission_classes = [IsAuthenticated]
@@ -194,12 +257,25 @@ class UserDetailView(APIView):
             return Response({"message": "User updated", "data": serializer.data}, status=200)
         return Response(serializer.errors, status=400)
 
-    def delete(self, request, nationality_number):
-        user = get_object_or_404(CustomUser, nationality_number=nationality_number)
-        user.delete()
-        return Response({"message": "User deleted"}, status=204)
 
-# ---------------------- FINGERPRINT MANAGEMENT ----------------------
+class UserDeleteView(LoginRequiredMixin, View):
+    def post(self, request, nationality_number):
+        if request.user.roles not in ["super_admin", "normal_admin"]:
+            messages.error(request, "شما اجازه حذف کاربر ندارید.")
+            return redirect('user-list')
+        
+        user = get_object_or_404(CustomUser, nationality_number=nationality_number)
+        
+        if request.user.roles == "normal_admin" and user.company != request.user.company:
+            messages.error(request, "شما فقط می‌توانید کاربران شرکت خود را حذف کنید.")
+            return redirect('user-list')
+        
+        user.is_active = False
+        user.deleted_at = now() 
+        user.save()
+
+        messages.success(request, f"کاربر «{user.first_name} {user.last_name}» با موفقیت غیرفعال شد.")
+        return redirect('user-list')
 
 class AddFingerprintAPI(APIView):
     permission_classes = [IsAuthenticated]
@@ -221,18 +297,20 @@ class AddFingerprintAPI(APIView):
         )
         return Response({"message": "Fingerprint added", "finger_id": fingerprint.id}, status=201)
 
+
 class EnrollFingerprintView(LoginRequiredMixin, TemplateView):
     template_name = "enroll_fingerprint.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        nationality_number = self.kwargs.get('nationality_number')
+        nationality_number = self.kwargs['nationality_number']
+        finger_name = self.kwargs['finger_name']
+
         user = get_object_or_404(CustomUser, nationality_number=nationality_number)
         context['user'] = user
-        context['fingers'] = [name for name, _ in FINGER_NAMES]
+        context['selected_finger'] = finger_name
+        context['finger_display'] = dict(FINGER_NAMES).get(finger_name, finger_name)
         return context
-
-# ---------------------- ATTENDANCE ----------------------
 
 class FingerprintAttendanceView(APIView):
     permission_classes = [AllowAny]
@@ -269,47 +347,53 @@ class FingerprintAttendanceView(APIView):
         }, status=201)
 
 
+class ShowTempPasswordView(LoginRequiredMixin, TemplateView):
+    template_name = "show_temp_password.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        nationality_number = self.kwargs['nationality_number']
+        user = get_object_or_404(CustomUser, nationality_number=nationality_number)
+
+        temp_password = "در دسترس نیست"
+        selected_finger = None
+        for message in messages.get_messages(self.request):
+            if message.extra_tags == 'temp_password':
+                temp_password = message.message
+            if message.extra_tags == 'selected_finger':
+                selected_finger = message.message
+
+        context['user'] = user
+        context['temp_password'] = temp_password
+        context['selected_finger'] = selected_finger
+        context['next_url'] = reverse('enroll_fingerprint', args=[nationality_number, selected_finger]) if selected_finger else reverse('user-list')
+
+        return context
+
+
+
 class ChangePasswordView(LoginRequiredMixin, View):
     template_name = "change_password.html"
 
     def get(self, request):
-        return render(request, self.template_name)
+        form = PasswordChangeForm(request.user)
+        response = render(request, self.template_name, {"form": form})
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
 
     def post(self, request):
-        old_password = request.POST.get("old_password")
-        new_password1 = request.POST.get("new_password1")
-        new_password2 = request.POST.get("new_password2")
+        form = PasswordChangeForm(request.user, request.POST)
 
-        user = request.user
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)  
+            messages.success(request, "رمز عبور با موفقیت تغییر کرد.")
+            return redirect("profile")
 
-        if not all([old_password, new_password1, new_password2]):
-            messages.error(request, "همه فیلدها الزامی هستند.")
-            return render(request, self.template_name)
-
-        if not user.check_password(old_password):
-            messages.error(request, "رمز عبور فعلی اشتباه است.")
-            return render(request, self.template_name)
-
-        if new_password1 != new_password2:
-            messages.error(request, "رمز جدید و تکرار آن یکسان نیستند.")
-            return render(request, self.template_name)
-
-        if old_password == new_password1:
-            messages.error(request, "رمز جدید نمی‌تواند مشابه رمز قبلی باشد.")
-            return render(request, self.template_name)
-
-        if len(new_password1) < 8:
-            messages.error(request, "رمز عبور جدید باید حداقل ۸ کاراکتر باشد.")
-            return render(request, self.template_name)
-
-        user.set_password(new_password1)
-        user.save()
-
-        from django.contrib.auth import update_session_auth_hash
-        update_session_auth_hash(request, user)
-
-        messages.success(request, "رمز عبور با موفقیت تغییر کرد.")
-        return redirect("profile") 
+        messages.error(request, "لطفاً خطاهای فرم را بررسی کنید.")
+        return render(request, self.template_name, {"form": form})
     
 
 class CompanyListView(LoginRequiredMixin, View):
@@ -318,7 +402,7 @@ class CompanyListView(LoginRequiredMixin, View):
             messages.error(request, "فقط سوپر ادمین می‌تواند شرکت‌ها را مدیریت کند.")
             return redirect('profile')
 
-        companies = Company.objects.all()
+        companies = Company.objects.filter(is_active=True)  # فقط فعال‌ها
         return render(request, 'company_list.html', {"companies": companies})
 
 
@@ -365,9 +449,14 @@ class CompanyDeleteView(LoginRequiredMixin, View):
             return redirect('company-list')
 
         company = get_object_or_404(Company, id=company_id)
-        company.delete()
+        
+        company.is_active = False
+        company.deleted_at = timezone.now()
+        company.save()
 
-        messages.success(request, "شرکت با موفقیت حذف شد.")
+        CustomUser.objects.filter(company=company).update(is_active=False, deleted_at=timezone.now())
+
+        messages.success(request, f"شرکت «{company.title}» و کاربران آن با موفقیت غیرفعال شدند.")
         return redirect('company-list')
 
 

@@ -1,0 +1,86 @@
+{% extends "base_admin_page.html" %}
+{% load static %}
+
+{% block header %}گزارش وضعیت دستگاه‌ها{% endblock %}
+
+{% block admin_content %}
+<div class="container-fluid mt-4">
+    <h2 class="text-center mb-4 fw-bold">گزارش وضعیت دستگاه‌ها</h2>
+
+    <div class="card shadow-lg">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0 log-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>دستگاه</th>
+                            <th>وضعیت</th>
+                            <th>IP</th>
+                            <th>پورت</th>
+                            <th>پیام</th>
+                            <th>زمان</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td>
+                                {% if log.device %}
+                                    <span class="badge bg-dark-subtle text-dark">{{ log.device.serial_number }}</span>
+                                {% else %}
+                                    <span class="badge bg-danger-subtle text-danger">دستگاه حذف شده</span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if log.status == "online" %}
+                                    <span class="badge bg-success py-2 px-3">آنلاین</span>
+                                {% else %}
+                                    <span class="badge bg-danger py-2 px-3">آفلاین</span>
+                                {% endif %}
+                            </td>
+
+                            <td>{{ log.ip_address }}</td>
+                            <td>{{ log.port }}</td>
+                            <td class="text-start">{{ log.message }}</td>
+                            <td>{{ log.timestamp|date:"Y/m/d H:i" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        {% if is_paginated %}
+        <nav>
+            <ul class="pagination justify-content-center shadow-sm rounded-pill p-2 bg-white">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link rounded-pill mx-1" href="?page={{ page_obj.previous_page_number }}">
+                        <i class="bi bi-arrow-right-short"></i> قبلی
+                    </a>
+                </li>
+                {% endif %}
+
+                <li class="page-item disabled">
+                    <span class="page-link bg-primary text-white rounded-pill mx-1 fw-bold">
+                        {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link rounded-pill mx-1" href="?page={{ page_obj.next_page_number }}">
+                        بعدی <i class="bi bi-arrow-left-short"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

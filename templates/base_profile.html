@@ -1,117 +1,177 @@
-{% extends "base.html" %} 
+{% extends "base.html" %}
 {% load static %}
-{% block title %}
-داشبورد
-{% endblock %}
+
+{% block title %}داشبورد | {{ user.first_name }} {{ user.last_name }}{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/profile.css' %}" />
 <style>
-  .dashboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-  }
-  .action-bar {
-    display: flex;
-    gap: 10px;
-  }
+  .app-layout { display: grid; grid-template-columns: 250px 1fr; min-height: 100vh; }
+  .sidebar { background-color: #2c3e50; color: white; padding: 20px; position: fixed; height: 100%; overflow-y: auto; box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
+  .main-content { grid-column: 2 / 3; padding: 30px; background-color: #f8f9fa; }
+  .sidebar-menu { list-style: none; padding: 0; margin-top: 30px; }
+  .sidebar-menu li a { color: #ecf0f1; display: block; padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; transition: all 0.3s; font-weight: 500; }
+  .sidebar-menu li a:hover, .sidebar-menu li a.active { background-color: #34495e; color: #fff; }
+  .sidebar-header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .dashboard-header h1 { font-size: 1.8rem; font-weight: 700; color: #0d6efd; }
+  .info-card, .chart-card, .attendance-table { background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+  .info-card .card-header { background: linear-gradient(135deg, #0d6efd, #0d6efd); color: white; }
+  .chart-card .card-header { background-color: #198754; color: white; }
+  .attendance-table .card-header { background-color: #6c757d; color: white; }
 </style>
-{% endblock %} {% block header %}
-<h1>پنل کاربری {{user.first_name}} {{user.last_name}}</h1>
-{% endblock %} {% block side_bar %}
-<ul class="sidebar-menu">
-  <li><a href="{% url 'profile' %}">پروفایل من</a></li>
-  <li><a href="{% url 'attendance-report' %}">گزارش حضور</a></li>
+{% endblock %}
 
-  {% if user.roles == 'normal_admin' %}
-  <li><a href="{% url 'user-list' %}">مدیریت کاربران شرکت</a></li>
-  {% endif %} {% if user.roles == 'super_admin' %}
-  <li><a href="{% url 'company-list' %}">مدیریت شرکت‌ها</a></li>
-  <li><a href="{% url 'user-list' %}">مدیریت همه کاربران</a></li>
-  <li><a href="{% url 'device-list' %}">مدیریت دستگاه ها </a></li>
-  {% endif %}
-
-  <li><a href="{% url 'change_password' %}">تغییر رمز عبور</a></li>
-  <li>
-    <form method="post" action="{% url 'logout' %}" style="display: inline">
-      {% csrf_token %}
-      <button
-        type="submit"
-        class="btn btn-link p-0 m-0"
-        style="color: inherit; text-decoration: none"
-      >
-        خروج
-      </button>
-    </form>
-  </li>
-</ul>
-{% endblock %} {% block content %}
-<div class="container-fluid profile-container">
-  <div class="dashboard-header card p-3 mb-4">
-        <div class="user-details">
-            <h3>{{ user.first_name }} {{ user.last_name }} خوش آمدید</h3>
-            <small class="text-muted">{{ user.roles }} of {{user.company}}</small>
+{% block content %}
+<div class="app-layout">
+    <!-- سایدبار (همون قبلی) -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h5 class="mb-0 pt-2 text-white">سامانه حضور و غیاب</h5>
+            {% if user.company %}
+                <small class="text-info">{{ user.company.title }}</small>
+            {% endif %}
         </div>
-        
-        <div class="action-bar">
-            {% block dashboard_actions %}
-            {% endblock %}
+        <ul class="sidebar-menu">
+            <li><a href="{% url 'profile' %}" class="active"><i class="bi bi-person-circle me-2"></i>داشبورد</a></li>
+            <li><a href="{% url 'attendance-report' %}"><i class="bi bi-clipboard-data me-2"></i>گزارش حضور</a></li>
+
+            {% if user.roles == 'normal_admin' or user.roles == 'super_admin' %}
+            <li><a href="{% url 'user-list' %}"><i class="bi bi-people-fill me-2"></i>مدیریت کاربران</a></li>
+            {% endif %}
+
+            {% if user.roles == 'super_admin' %}
+            <li><a href="{% url 'company-list' %}"><i class="bi bi-building me-2"></i>مدیریت شرکت‌ها</a></li>
+            <li><a href="{% url 'device-list' %}"><i class="bi bi-cpu-fill me-2"></i>مدیریت دستگاه‌ها</a></li>
+            {% endif %}
+
+            <li class="mt-4"><a href="{% url 'change_password' %}"><i class="bi bi-lock-fill me-2"></i>تغییر رمز عبور</a></li>
+            <li><a href="{% url 'logout' %}" class="text-danger"><i class="bi bi-box-arrow-right me-2"></i>خروج</a></li>
+        </ul>
+    </aside>
+
+    <!-- محتوای اصلی داشبورد -->
+    <main class="main-content">
+        <div class="dashboard-header d-flex justify-content-between align-items-center mb-4">
+            <h1>داشبورد من</h1>
+            <div class="text-muted">خوش آمدید، {{ user.first_name }} {{ user.last_name }}</div>
         </div>
-    </div>
 
-  <div class="row mb-4">{% block dashboard_stats %} {% endblock %}</div>
+        <div class="row g-4">
+            <!-- 1. کارت اطلاعات کاربر -->
+            <div class="col-lg-4">
+                <div class="info-card h-100">
+                    <div class="card-header text-white">
+                        <h5 class="mb-0"><i class="bi bi-person-badge me-2"></i>اطلاعات من</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-4">
+                            <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px; font-size: 2rem;">
+                                {{ user.first_name|first }}{{ user.last_name|first }}
+                            </div>
+                        </div>
+                        <hr>
+                        <p><strong>نام کامل:</strong> {{ user.first_name }} {{ user.last_name }}</p>
+                        <p><strong>کد ملی:</strong> <span dir="ltr">{{ user.nationality_number }}</span></p>
+                        <p><strong>نقش:</strong> <span class="badge bg-primary fs-6">{{ user.get_roles_display }}</span></p>
+                        {% if user.company %}
+                        <p><strong>شرکت:</strong> <span class="badge bg-success fs-6">{{ user.company.title }}</span></p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
 
-  <div class="attendance-chart card mb-4">
-    <div class="card-header bg-light">
-      <h5 class="mb-0">نمودار ساعات حضور من</h5>
-    </div>
-    <div class="card-body">
-      <canvas id="attendanceChart" data-chart="{{ chart_data|safe }}"></canvas>
-    </div>
-  </div>
+            <!-- 2. نمودار ساعات حضور -->
+            <div class="col-lg-8">
+                <div class="chart-card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-bar-chart-line me-2"></i>ساعات حضور در ۷ روز اخیر</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="attendanceChart" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-  <div class="recent-attendance card">
-    <div class="card-header bg-light">
-      <h5 class="mb-0">آخرین ترددهای من</h5>
-    </div>
-    <div class="card-body">
-      <table class="table table-hover">
-        <thead>
-          <tr>
-            <th>تاریخ</th>
-            <th>ساعت ورود</th>
-            <th>ساعت خروج</th>
-            <th>وضعیت</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for att in recent_attendance %}
-          <tr>
-            <td>{{ att.date }}</td>
-            <td class="text-success">{{ att.check_in|default:"-" }}</td>
-            <td class="text-danger">{{ att.check_out|default:"-" }}</td>
-            <td>
-              {% if att.check_in and att.check_out %}
-              <span class="badge bg-success">کامل</span>
-              {% else %}
-              <span class="badge bg-warning text-dark">ناقص</span>
-              {% endif %}
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="4" class="text-center text-muted">
-              هیچ ثبت ساعتی وجود ندارد
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+        <!-- 3. جدول آخرین ترددها -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="attendance-table">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>آخرین ترددها</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>تاریخ</th>
+                                        <th>ورود</th>
+                                        <th>خروج</th>
+                                        <th>ساعات کاری</th>
+                                        <th>وضعیت</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for att in recent_attendance %}
+                                    <tr>
+                                        <td><strong>{{ att.date|date:"Y/m/d" }}</strong></td>
+                                        <td class="text-success">{{ att.check_in|time:"H:i"|default:"—" }}</td>
+                                        <td class="text-danger">{{ att.check_out|time:"H:i"|default:"—" }}</td>
+                                        <td>
+                                            {% if att.check_in and att.check_out %}
+                                                {% with hours=att.check_out|time:"H:i" %}
+                                                    {{ att.hours|floatformat:1 }} ساعت
+                                                {% endwith %}
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if att.check_in and att.check_out %}
+                                                <span class="badge bg-success">کامل</span>
+                                            {% elif att.check_in %}
+                                                <span class="badge bg-warning text-dark">در حال کار</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">غایب</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">هیچ ترددی ثبت نشده است.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
 </div>
-{% endblock %} {% block extra_js %}
+{% endblock %}
+
+{% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{% static 'js/profile.js' %}"></script>
-{% block dashboard_js %}{% endblock %} {% endblock %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const ctx = document.getElementById('attendanceChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {{ chart_data|safe }},
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' },
+                title: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true, title: { display: true, text: 'ساعت' } }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

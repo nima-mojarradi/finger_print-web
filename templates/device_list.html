@@ -1,41 +1,90 @@
-{% extends "base_profile.html" %}
+{% extends "base_admin_page.html" %}
 {% load static %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/users.css' %}">
-{% endblock %}
+{% block header %}لیست دستگاه‌ها{% endblock %}
 
-{% block content %}
-<h2 style="text-align:center; margin-bottom: 20px;">لیست دستگاه‌ها</h2>
+{% block admin_content %}
+<div class="container-fluid mt-4">
+    <!-- هدر با عنوان و دکمه‌های عملیات -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <h2 class="h4 mb-0 fw-bold text-primary">
+            <i class="bi bi-cpu-fill me-2"></i>
+            لیست دستگاه‌های حضور و غیاب
+        </h2>
 
-<table class="users-table">
-<thead>
-<tr>
-<th>شماره سریال</th>
-<th>IP</th>
-<th>پورت</th>
-<th>وضعیت</th>
-</tr>
-</thead>
-<tbody>
-{% for device in devices %}
-<tr data-id="{{ device.id }}">
-<td>{{ device.serial_number }}</td>
-<td>{{ device.ip_address }}</td>
-<td>{{ device.port }}</td>
-<td class="status-cell">
-{% if device.status == "online" %}
-<span class="badge bg-success">آنلاین</span>
-{% elif device.status == "offline" %}
-<span class="badge bg-danger">آفلاین</span>
-{% else %}
-<span class="badge bg-warning text-dark">خطا</span>
-{% endif %}
-</td>
-</tr>
-{% endfor %}
-</tbody>
-</table>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'device-create' %}" class="btn btn-success shadow-sm d-flex align-items-center">
+                <i class="bi bi-plus-circle-fill me-2"></i>
+                افزودن دستگاه جدید
+            </a>
+            <a href="{% url 'device-logs' %}" class="btn btn-info shadow-sm text-white d-flex align-items-center">
+                <i class="bi bi-journal-text me-2"></i>
+                مشاهده لاگ دستگاه‌ها
+            </a>
+        </div>
+    </div>
+
+    <!-- کارت جدول -->
+    <div class="card shadow border-0 rounded-4 overflow-hidden">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-primary text-white">
+                        <tr>
+                            <th class="text-center">شماره سریال</th>
+                            <th>آدرس IP</th>
+                            <th>پورت</th>
+                            <th class="text-center">وضعیت</th>
+                            <th class="text-center">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for device in devices %}
+                        <tr data-id="{{ device.pk }}">
+                            <td class="text-center fw-semibold">
+                                <span class="badge bg-dark fs-6 px-3 py-2">{{ device.serial_number }}</span>
+                            </td>
+                            <td class="fw-medium" dir="ltr">{{ device.ip_address }}</td>
+                            <td class="text-center">{{ device.port }}</td>
+                            <td class="text-center status-cell">
+                                {% if device.status == "online" %}
+                                    <span class="badge bg-success py-2 px-4 fs-6">آنلاین</span>
+                                {% elif device.status == "offline" %}
+                                    <span class="badge bg-danger py-2 px-4 fs-6">آفلاین</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark py-2 px-4 fs-6">خطا</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'device-edit' device.pk %}" 
+                                       class="btn btn-outline-primary btn-sm rounded-start" 
+                                       title="ویرایش">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+                                    <button type="button" 
+                                            class="btn btn-outline-danger btn-sm rounded-end delete-device" 
+                                            data-id="{{ device.pk }}"
+                                            title="حذف">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-5">
+                                <i class="bi bi-inbox display-4 d-block mb-3 text-muted"></i>
+                                هیچ دستگاهی ثبت نشده است.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
 const ws = new WebSocket('ws://' + window.location.host + '/ws/devices/');
@@ -48,11 +97,51 @@ ws.onmessage = function(e) {
     const statusCell = row.querySelector(".status-cell");
     if (!statusCell) return;
 
-    statusCell.innerHTML = data.status === "online"
-        ? '<span class="badge bg-success">آنلاین</span>'
-        : data.status === "offline"
-        ? '<span class="badge bg-danger">آفلاین</span>'
-        : '<span class="badge bg-warning text-dark">خطا</span>';
+    let badge;
+    if (data.status === "online") {
+        badge = '<span class="badge bg-success py-2 px-4 fs-6">آنلاین</span>';
+    } else if (data.status === "offline") {
+        badge = '<span class="badge bg-danger py-2 px-4 fs-6">آفلاین</span>';
+    } else {
+        badge = '<span class="badge bg-warning text-dark py-2 px-4 fs-6">خطا</span>';
+    }
+    
+    statusCell.innerHTML = badge;
 };
+
+/* حذف دستگاه با تأیید و فیدبک بهتر */
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".delete-device").forEach(btn => {
+        btn.addEventListener("click", async function(e) {
+            e.preventDefault();
+            const id = this.dataset.id;
+
+            if (!confirm(`آیا از حذف دستگاه با شناسه ${id} مطمئن هستید؟ این عملیات قابل بازگشت نیست.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/devices/${id}/delete/`, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": "{{ csrf_token }}",
+                        "Content-Type": "application/json"
+                    }
+                });
+
+                if (response.ok) {
+                    alert("دستگاه با موفقیت حذف شد.");
+                    location.reload();
+                } else {
+                    const error = await response.text();
+                    alert("خطا در حذف دستگاه: " + (error || "نامشخص"));
+                }
+            } catch (err) {
+                alert("خطا در ارتباط با سرور.");
+            }
+        });
+    });
+});
 </script>
+
 {% endblock %}

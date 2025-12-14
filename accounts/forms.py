@@ -1,9 +1,8 @@
 from django import forms
-from .models import CustomUser, Company
+from .models import CustomUser, Company, FINGER_NAMES
 
 
 class LoginForm(forms.Form):
-    # این فیلدها مستقیماً با متغیرهای ویوی لاگین شما مطابقت دارند
     nationality_number = forms.CharField(
         label="کد ملی",
         max_length=20,
@@ -15,19 +14,32 @@ class LoginForm(forms.Form):
     )
 
 class CustomUserForm(forms.ModelForm):
-    # توجه: رمز عبور در هنگام ذخیره باید در ویو set شود
+    selected_finger = forms.ChoiceField(
+        choices=FINGER_NAMES,
+        label="انگشت برای ثبت اثرانگشت",
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
     class Meta:
         model = CustomUser
-        fields = ['first_name', 'last_name', 'nationality_number', 'roles', 'company']
+        fields = ['first_name', 'last_name', 'nationality_number', 'roles', 'company', 'selected_finger']
         widgets = {
-            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'nationality_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'نام'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'نام خانوادگی'}),
+            'nationality_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'کد ملی (۱۰ رقمی)', 'dir': 'ltr'}),
             'roles': forms.Select(attrs={'class': 'form-select'}),
             'company': forms.Select(attrs={'class': 'form-select'}),
         }
 
-
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None) 
+        super().__init__(*args, **kwargs)
+        
+        if user and user.roles == 'normal_admin':
+            self.fields['company'].queryset = Company.objects.filter(id=user.company.id, is_active=True)
+        else:
+            self.fields['company'].queryset = Company.objects.filter(is_active=True)
 
 class UserEditForm(forms.ModelForm):
     class Meta:
@@ -39,6 +51,15 @@ class UserEditForm(forms.ModelForm):
             'roles': forms.Select(attrs={'class': 'form-select'}),
             'company': forms.Select(attrs={'class': 'form-select'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None) 
+        super().__init__(*args, **kwargs)
+        
+        if user and user.roles == 'normal_admin':
+            self.fields['company'].queryset = Company.objects.filter(id=user.company.id, is_active=True)
+        else:
+            self.fields['company'].queryset = Company.objects.filter(is_active=True)
 
 
 

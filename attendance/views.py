@@ -2,7 +2,7 @@ import csv
 from datetime import datetime, timedelta
 from io import BytesIO
 from collections import defaultdict
-
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, render
 from django.views import View
 from django.core.paginator import Paginator
@@ -74,7 +74,7 @@ class AttendanceReportView(View):
         user_role = getattr(current_user, 'roles', None)
 
         if user_role == 'user':
-            users = users.filter(id=current_user.id)
+            users = users.filter(id=current_user.nationality_number)
         elif user_role == 'normal_admin' and hasattr(current_user, 'company') and current_user.company:
             users = users.filter(company=current_user.company)
         return users
@@ -106,6 +106,16 @@ class AttendanceReportView(View):
         return work_hours
 
     def get(self, request):
+        q = request.GET.get("q")
+
+        attendance = AttendanceEvent.objects.all()
+
+        if q:
+            attendance = attendance.filter(
+                Q(user__nationality_number__icontains=q) |
+                Q(user__first_name__icontains=q) |
+                Q(user__last_name__icontains=q)
+            )
         queryset = self.get_filtered_queryset(request)
         work_hours_dict = self.calculate_work_hours(queryset)
 
@@ -140,38 +150,32 @@ class AttendanceReportView(View):
         current_user = request.user
         user_role = getattr(current_user, 'roles', None)
 
+        # سطح دسترسی
         if user_role == 'user':
             if not request.GET.get('user'):
                 qs = qs.filter(user=current_user)
         elif user_role == 'normal_admin' and hasattr(current_user, 'company'):
             qs = qs.filter(user__company=current_user.company)
 
+        # فیلتر تاریخ
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
-        if start_date and start_date.strip():
-            try: qs = qs.filter(timestamp__date__gte=parse_date(start_date))
-            except: pass
-        if end_date and end_date.strip():
-            try: qs = qs.filter(timestamp__date__lte=parse_date(end_date))
-            except: pass
 
+        if start_date:
+            qs = qs.filter(timestamp__date__gte=parse_date(start_date))
+        if end_date:
+            qs = qs.filter(timestamp__date__lte=parse_date(end_date))
+
+        # 🔥 فیلتر نوع تردد (درخواست شده توسط شما)
+        event_type = request.GET.get("event_type")
+        if event_type in ["in", "out"]:
+            qs = qs.filter(event_type=event_type)
+
+        # 🔥 فیلتر کاربر
         nationality_number = request.GET.get('user')
-        if nationality_number and nationality_number.strip():
+        if nationality_number:
             qs = qs.filter(user__nationality_number=nationality_number)
 
-        status = request.GET.get('status')
-        if status in ['complete', 'incomplete']:
-            user_events = qs.values('user_id', 'event_type').distinct()
-            users_with_in = {e['user_id'] for e in user_events if e['event_type'] == 'in'}
-            users_with_out = {e['user_id'] for e in user_events if e['event_type'] == 'out'}
-            if status == 'complete':
-                allowed_users = users_with_in.intersection(users_with_out)
-            else:
-                allowed_users = users_with_in - users_with_out
-            if allowed_users:
-                qs = qs.filter(user_id__in=allowed_users)
-            else:
-                qs = qs.none()
         return qs
 
     def export_file(self, queryset, export_type, work_hours_dict):

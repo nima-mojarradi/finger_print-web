@@ -1,219 +1,91 @@
-{% extends "base_profile.html" %}
+{% extends "base_admin_page.html" %}
 {% load static %}
-
-{% block extra_css %}
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-{% endblock %}
-
-{% block content %}
-<div class="container mt-5">
-    <div class="card shadow-sm">
-        <div class="card-header bg-success text-white">
-            <h3 class="mb-0">ایجاد کاربر جدید</h3>
-        </div>
-        <div class="card-body">
-
-            {% if messages %}
-                {% for message in messages %}
-                    {% if 'show_password' in message.tags %}
-                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                        <strong>رمز عبور موقت کاربر جدید:</strong><br>
-                        <h4 class="mt-3 mb-2 text-primary">
-                            <code class="bg-light px-4 py-2 rounded fs-5">{{ message }}</code>
-                        </h4>
-                        <hr>
-                        <p class="mb-0 text-danger">
-                            این رمز فقط یک بار نمایش داده می‌شود. حتماً آن را کپی کنید!
-                        </p>
-<<<<<<< HEAD
-=======
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                    {% endif %}
-                {% endfor %}
-            {% endif %}
-
-            {% if messages %}
-                {% for message in messages %}
-                    {% if 'show_password' not in message.tags %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
-                        {{ message }}
->>>>>>> refs/remotes/origin/main
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                    {% endif %}
-                {% endfor %}
-            {% endif %}
-
-<<<<<<< HEAD
-            {% for message in messages %}
-                {% if 'show_password' not in message.tags %}
-                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-=======
-            <form method="post">
-                {% csrf_token %}
-                
-                <div class="mb-3">
-                    <label class="form-label">نام</label>
-                    {{ form.first_name }}
-                    {% if form.first_name.errors %}
-                        <div class="text-danger small">{{ form.first_name.errors }}</div>
-                    {% endif %}
+{% load widget_tweaks %}
+{% block admin_content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-header bg-primary text-white text-center py-4">
+                    <h3 class="mb-0">
+                        <i class="bi bi-person-plus-fill"></i>
+                        ایجاد کاربر جدید
+                    </h3>
                 </div>
+                <div class="card-body p-5">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
 
-                <div class="mb-3">
-                    <label class="form-label">نام خانوادگی</label>
-                    {{ form.last_name }}
-                    {% if form.last_name.errors %}
-                        <div class="text-danger small">{{ form.last_name.errors }}</div>
-                    {% endif %}
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">کد ملی</label>
-                    {{ form.nationality_number }}
-                    {% if form.nationality_number.errors %}
-                        <div class="text-danger small">{{ form.nationality_number.errors }}</div>
-                    {% endif %}
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">نقش</label>
-                    {{ form.roles }}
-                    {% if form.roles.errors %}
-                        <div class="text-danger small">{{ form.roles.errors }}</div>
-                    {% endif %}
-                </div>
-
-                {% if request.user.roles == "super_admin" %}
-                <div class="mb-3">
-                    <label class="form-label">شرکت</label>
-                    {{ form.company }}
-                    {% if form.company.errors %}
-                        <div class="text-danger small">{{ form.company.errors }}</div>
-                    {% endif %}
->>>>>>> refs/remotes/origin/main
-                </div>
-                {% endif %}
-            {% endfor %}
-
-            <form method="post">
-                {% csrf_token %}
-
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label">نام</label>
-                        {{ form.first_name }}
-                        {% if form.first_name.errors %}
-                            <div class="text-danger small">{{ form.first_name.errors|join:", " }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">نام خانوادگی</label>
-                        {{ form.last_name }}
-                        {% if form.last_name.errors %}
-                            <div class="text-danger small">{{ form.last_name.errors|join:", " }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">کد ملی</label>
-                        {{ form.nationality_number }}
-                        {% if form.nationality_number.errors %}
-                            <div class="text-danger small">{{ form.nationality_number.errors|join:", " }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">نقش</label>
-                        {{ form.roles }}
-                        {% if form.roles.errors %}
-                            <div class="text-danger small">{{ form.roles.errors|join:", " }}</div>
-                        {% endif %}
-                    </div>
-
-                    {% if request.user.roles == "super_admin" %}
-                    <div class="col-12">
-                        <label class="form-label">شرکت</label>
-                        {{ form.company }}
-                        {% if form.company.errors %}
-                            <div class="text-danger small">{{ form.company.errors|join:", " }}</div>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-
-                    <!-- دراپ‌داون پویا برای انگشت‌ها -->
-                    <div class="col-12">
-                        <label class="form-label">انگشت اثر</label>
-                        <div class="dropdown">
-                            <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" 
-                                    type="button" 
-                                    id="fingerDropdown" 
-                                    data-bs-toggle="dropdown" 
-                                    aria-expanded="false">
-                                <span id="selectedFingerText">یک انگشت انتخاب کنید</span>
-                            </button>
-                            <ul class="dropdown-menu w-100" style="max-height: 300px; overflow-y: auto;">
-                                {% for finger in fingers %}
-                                <li>
-                                    <a class="dropdown-item" 
-                                       href="#" 
-                                       data-value="{{ finger }}">{{ finger }}</a>
-                                </li>
-                                {% empty %}
-                                <li><a class="dropdown-item text-muted" href="#">هیچ انگشتی ثبت نشده</a></li>
-                                {% endfor %}
-                            </ul>
+                        <!-- نام -->
+                        <div class="mb-3">
+                            <label for="{{ form.first_name.id_for_label }}" class="form-label">نام</label>
+                            {{ form.first_name|add_class:"form-control"|attr:"placeholder:نام کاربر" }}
+                            {% if form.first_name.errors %}
+                                <div class="text-danger small mt-1">{{ form.first_name.errors|join:", " }}</div>
+                            {% endif %}
                         </div>
 
-                        <!-- فیلد مخفی برای ارسال مقدار انتخاب شده -->
-                        <input type="hidden" name="selected_finger" id="selectedFingerInput" value="">
+                        <!-- نام خانوادگی -->
+                        <div class="mb-3">
+                            <label for="{{ form.last_name.id_for_label }}" class="form-label">نام خانوادگی</label>
+                            {{ form.last_name|add_class:"form-control"|attr:"placeholder:نام خانوادگی" }}
+                            {% if form.last_name.errors %}
+                                <div class="text-danger small mt-1">{{ form.last_name.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
 
-                        <small class="text-muted d-block mt-2">
-                            انتخاب شده: <strong id="selectedFingerDisplay">هیچ‌کدام</strong>
-                        </small>
-                    </div>
-                </div>
+                        <!-- کد ملی -->
+                        <div class="mb-3">
+                            <label for="{{ form.nationality_number.id_for_label }}" class="form-label">کد ملی</label>
+                            {{ form.nationality_number|add_class:"form-control"|attr:"placeholder:کد ملی (10 رقمی)"|attr:"dir:ltr" }}
+                            {% if form.nationality_number.errors %}
+                                <div class="text-danger small mt-1">{{ form.nationality_number.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
 
-                <div class="mt-4">
-                    <button type="submit" class="btn btn-success btn-lg"> ثبت اثر انگشت  </button>
-                    <a href="{% url 'user-list' %}" class="btn btn-secondary btn-lg ms-2">بازگشت به لیست</a>
+                        <!-- شرکت -->
+                        <div class="mb-3">
+                            <label for="{{ form.company.id_for_label }}" class="form-label">شرکت</label>
+                            {{ form.company|add_class:"form-select" }}
+                            {% if form.company.errors %}
+                                <div class="text-danger small mt-1">{{ form.company.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- نقش -->
+                        <div class="mb-3">
+                            <label for="{{ form.roles.id_for_label }}" class="form-label">نقش</label>
+                            {{ form.roles|add_class:"form-select" }}
+                            {% if form.roles.errors %}
+                                <div class="text-danger small mt-1">{{ form.roles.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- انتخاب انگشت جدید -->
+                        <div class="mb-3">
+                            <label for="{{ form.selected_finger.id_for_label }}" class="form-label">
+                                انگشت برای ثبت اثرانگشت
+                            </label>
+                            {{ form.selected_finger|add_class:"form-select" }}
+                            {% if form.selected_finger.errors %}
+                                <div class="text-danger small mt-1">{{ form.selected_finger.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-check-circle"></i>
+                                ایجاد کاربر و ادامه به ثبت اثرانگشت
+                            </button>
+                            <a href="{% url 'user-list' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i>
+                                بازگشت به لیست کاربران
+                            </a>
+                        </div>
+                    </form>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const dropdownItems = document.querySelectorAll(".dropdown-item[data-value]");
-    const buttonText = document.getElementById("selectedFingerText");
-    const displayText = document.getElementById("selectedFingerDisplay");
-    const hiddenInput = document.getElementById("selectedFingerInput");
-
-    dropdownItems.forEach(item => {
-        item.addEventListener("click", function (e) {
-            e.preventDefault();
-
-            const value = this.getAttribute("data-value");
-            const text = this.textContent.trim();
-
-            buttonText.textContent = text;
-
-            displayText.textContent = text;
-
-            hiddenInput.value = value;
-
-            const dropdown = bootstrap.Dropdown.getInstance(document.getElementById("fingerDropdown"));
-            if (dropdown) dropdown.hide();
-        });
-    });
-});
-</script>
 {% endblock %}

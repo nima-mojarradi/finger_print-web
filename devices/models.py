@@ -15,7 +15,7 @@ class Device(models.Model):
     is_active = models.BooleanField(default=True)
     last_sync = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=100, choices=STATUS_CHOICES, default="offline")
-    
+    deleted_at = models.DateTimeField(null=True, blank=True)
     def __str__(self):
         return f"{self.serial_number} : {self.address}"
 
