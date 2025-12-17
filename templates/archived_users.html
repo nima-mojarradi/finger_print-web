@@ -1,0 +1,46 @@
+{% extends "base_admin_page.html" %}
+
+{% block admin_content %}
+<div class="container mt-4">
+    <h2 class="text-center mb-4 text-danger">آرشیو کاربران غیرفعال</h2>
+    
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>نام</th>
+                    <th>کد ملی</th>
+                    <th>شرکت</th>
+                    <th>نقش</th>
+                    <th>تاریخ غیرفعال‌سازی</th>
+                    <th>عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.first_name }} {{ user.last_name }}</td>
+                    <td>{{ user.nationality_number }}</td>
+                    <td>{{ user.company.title|default:"—" }}</td>
+                    <td>{{ user.get_roles_display }}</td>
+                    <td>{{ user.deleted_at|date:"Y/m/d H:i"|default:"—" }}</td>
+                    <td>
+                        <form method="post" action="{% url 'reactivate-user' user.nationality_number %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success btn-sm"
+                                    onclick="return confirm('آیا از بازیابی کاربر مطمئن هستید؟')">
+                                بازیابی
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center">هیچ کاربر غیرفعالی وجود ندارد.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <a href="{% url 'user-list' %}" class="btn btn-primary">بازگشت به لیست کاربران</a>
+</div>
+{% endblock %}

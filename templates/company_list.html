@@ -12,6 +12,9 @@
             <i class="bi bi-plus-circle-fill me-2"></i>
             افزودن شرکت جدید
         </a>
+    <a href="{% url 'archived-companies' %}" class="btn btn-warning btn-sm">
+    <i class="bi bi-archive"></i> آرشیو شرکت ها
+</a>
 </div>
 
 <div class="card shadow-sm">
@@ -37,9 +40,9 @@
                                 <i class="bi bi-pencil-square"></i>
                             </a>
 
-                            <a href="#" 
-                                 class="action-icon delete text-danger delete-company"
-                                 data-id="{{ company.pk }}">
+                            <a href="{% url 'company-delete' company.pk %}" 
+                            class="action-icon delete text-danger delete-company"
+                            data-id="{{ company.pk }}">
                                 <i class="bi bi-trash-fill"></i>
                             </a>
                         </td>
@@ -59,19 +62,32 @@ document.addEventListener("DOMContentLoaded", () => {
         btn.addEventListener("click", async (e) => {
             e.preventDefault();
             const id = btn.getAttribute("data-id");
+            const url = `/companies/${id}/delete/`;
 
-            if (!confirm(`آیا از حذف شرکت با شناسه ${id} مطمئن هستید؟ این عملیات قابل بازگشت نیست.`)) return;
+            if (!confirm("آیا از غیرفعال کردن این شرکت و تمام کاربران آن مطمئن هستید؟")) {
+                return;
+            }
 
-            const response = await fetch(`/companies/${id}/delete/`, {
-                method: "POST",
-                headers: { "X-CSRFToken": "{{ csrf_token }}" }
-            });
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": "{{ csrf_token }}",
+                        "Content-Type": "application/json"
+                    }
+                });
 
-            if (response.status === 200 || response.status === 204) {
-                alert("شرکت با موفقیت حذف شد.");
-                location.reload();
-            } else {
-                alert("خطا در حذف شرکت. مطمئن شوید هیچ کاربری به این شرکت وابسته نباشد.");
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert(data.error || "خطایی در حذف شرکت رخ داد.");
+                }
+            } catch (err) {
+                alert("خطا در ارتباط با سرور. صفحه را رفرش کنید و دوباره امتحان کنید.");
+                console.error(err);
             }
         });
     });

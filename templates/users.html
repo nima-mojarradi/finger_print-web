@@ -5,7 +5,6 @@
 {% block admin_content %}
 <div class="container mt-4">
     <h2 class="text-center mb-4">لیست کاربران</h2>
-
     <form method="get" class="row g-3 mb-3">
         <div class="col-auto">
             <input type="text" name="q" class="form-control" placeholder="جستجوی کاربران..." value="{{ search_query|default:'' }}">
@@ -15,6 +14,9 @@
             <a href="{% url 'user-list' %}" class="btn btn-secondary">پاک کردن</a>
             {% if request.user.roles == 'super_admin' or request.user.roles == 'normal_admin' %}
             <a href="{% url 'user-create' %}" class="btn btn-success">ایجاد کاربر جدید</a>
+            <a href="{% url 'archived-users' %}" class="btn btn-warning btn-sm">
+            <i class="bi bi-archive"></i> آرشیو کاربران
+            </a>
             {% endif %}
         </div>
     </form>

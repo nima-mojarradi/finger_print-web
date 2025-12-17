@@ -1,13 +1,12 @@
-from pyexpat.errors import messages
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
-
+from django.utils import timezone
 from .models import Device, DeviceLog
 from .forms import DeviceForm
 from django.views.generic import ListView
-
+from django.contrib import messages
 
 
 class DeviceLogListView(ListView):
@@ -19,7 +18,7 @@ class DeviceLogListView(ListView):
 
 class DeviceListView(View):
     def get(self, request):
-        devices = Device.objects.all()
+        devices = Device.objects.filter(is_active=True)
         return render(request, "device_list.html", {"devices": devices})
 
 class DeviceCreateView(View):
@@ -59,13 +58,43 @@ class DeviceUpdateView(View):
             return redirect("device-list")
         return render(request, "device_form.html", {"form": form, "device": device})
 
+
 class DeviceDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
         if request.user.roles != "super_admin":
             return JsonResponse({"error": "فقط سوپر ادمین می‌تواند حذف کند."}, status=403)
-        
-        device = get_object_or_404(Device, pk=pk)
-        device.delete()
-        
-        return JsonResponse({"success": "دستگاه با موفقیت حذف شد."}, status=200)
 
+        device = get_object_or_404(Device, pk=pk, is_active=True)
+
+        device.is_active = False
+        device.deleted_at = timezone.now()
+        device.save()
+
+        return JsonResponse({
+            "success": True,
+            "message": f"دستگاه «{device.serial_number}» با موفقیت غیرفعال شد."
+        })
+    
+
+class ArchivedDeviceListView(LoginRequiredMixin, View):
+    template_name = 'archived_devices.html'
+
+    def get(self, request):
+        devices = Device.objects.filter(is_active=False)
+        return render(request, self.template_name, {'devices': devices})
+    
+
+class ReactivateDeviceView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        if request.user.roles != "super_admin":
+            messages.error(request, "فقط سوپر ادمین می‌تواند دستگاه را بازیابی کند.")
+            return redirect('device-list')
+
+        device = get_object_or_404(Device, pk=pk, is_active=False)
+
+        device.is_active = True
+        device.deleted_at = None
+        device.save()
+
+        messages.success(request, f"دستگاه «{device.serial_number}» با موفقیت بازیابی شد.")
+        return redirect('device-list')  

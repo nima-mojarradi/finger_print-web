@@ -10,7 +10,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.utils.crypto import get_random_string
-from django.utils.timezone import localtime, timezone
+from django.utils.timezone import localtime, now
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -25,6 +25,7 @@ from datetime import timedelta
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 from django.utils.timezone import now, localtime
+from django.http import JsonResponse
 
 class LoginView(View):
 
@@ -443,21 +444,25 @@ class CompanyEditView(LoginRequiredMixin, UpdateView):
 
 
 class CompanyDeleteView(LoginRequiredMixin, View):
-    def post(self, request, company_id):
+    def post(self, request, pk):
         if request.user.roles != "super_admin":
-            messages.error(request, "فقط سوپر ادمین می‌تواند حذف کند.")
-            return redirect('company-list')
+            return JsonResponse({"error": "فقط سوپر ادمین می‌تواند حذف کند."}, status=403)
 
-        company = get_object_or_404(Company, id=company_id)
-        
+        company = get_object_or_404(Company, pk=pk, is_active=True)
+
         company.is_active = False
-        company.deleted_at = timezone.now()
+        company.deleted_at = now()
         company.save()
 
-        CustomUser.objects.filter(company=company).update(is_active=False, deleted_at=timezone.now())
+        CustomUser.objects.filter(company=company).update(
+            is_active=False,
+            deleted_at=now()
+        )
 
-        messages.success(request, f"شرکت «{company.title}» و کاربران آن با موفقیت غیرفعال شدند.")
-        return redirect('company-list')
+        return JsonResponse({
+            "success": True,
+            "message": f"شرکت «{company.title}» و کاربران آن با موفقیت غیرفعال شدند."
+        })
 
 
 
@@ -484,3 +489,65 @@ class CompanyDetailAPI(APIView):
         company = get_object_or_404(Company, pk=pk)
         company.delete()
         return Response({"message": "Company deleted"}, status=204)
+
+
+
+class ArchivedUserListView(LoginRequiredMixin, View):
+    template_name = 'archived_users.html'
+
+    def get(self, request):
+        if request.user.roles not in ['super_admin', 'normal_admin']:
+            messages.error(request, "دسترسی غیرمجاز")
+            return redirect('user-list')
+
+        users = CustomUser.objects.filter(is_active=False).select_related('company')
+        if request.user.roles == 'normal_admin':
+            users = users.filter(company=request.user.company)
+
+        return render(request, self.template_name, {'users': users})
+    
+
+class ReactivateUserView(LoginRequiredMixin, View):
+    def post(self, request, nationality_number):
+        if request.user.roles not in ['super_admin', 'normal_admin']:
+            messages.error(request, "دسترسی غیرمجاز")
+            return redirect('user-list')
+
+        user = get_object_or_404(CustomUser, nationality_number=nationality_number, is_active=False)
+        if request.user.roles == 'normal_admin' and user.company != request.user.company:
+            messages.error(request, "دسترسی غیرمجاز")
+            return redirect('user-list')
+
+        user.is_active = True
+        user.deleted_at = None
+        user.save()
+
+        messages.success(request, "کاربر با موفقیت بازیابی شد.")
+        return redirect('user-list')
+    
+
+class ArchivedCompanyListView(LoginRequiredMixin, View):
+    template_name = 'archived_companies.html'
+
+    def get(self, request):
+        if request.user.roles != 'super_admin':
+            messages.error(request, "دسترسی غیرمجاز")
+            return redirect('company-list')
+
+        companies = Company.objects.filter(is_active=False)
+        return render(request, self.template_name, {'companies': companies})
+    
+
+class ReactivateCompanyView(LoginRequiredMixin, View):
+    def post(self, request, company_id):
+        if request.user.roles != 'super_admin':
+            messages.error(request, "دسترسی غیرمجاز")
+            return redirect('company-list')
+
+        company = get_object_or_404(Company, id=company_id, is_active=False)
+        company.is_active = True
+        company.deleted_at = None
+        company.save()
+
+        messages.success(request, "شرکت با موفقیت بازیابی شد.")
+        return redirect('company-list')

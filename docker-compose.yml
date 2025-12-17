@@ -1,19 +1,22 @@
 version: '3.8'
 
 services:
-
   db:
-    image: postgres:14-alpine
-    container_name: accounts-database
-    restart: always
-    environment:
-      - POSTGRES_DB=accounts_database
-      - POSTGRES_USER=nima
-      - POSTGRES_PASSWORD=3858nima
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+      image: postgres:15
+      restart: always
+      environment:
+        POSTGRES_DB: accounts_database
+        POSTGRES_USER: nima
+        POSTGRES_PASSWORD: 3858nima
+      ports:
+        - "5432:5432"
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U nima -d accounts_database"]
+        interval: 5s
+        timeout: 5s
+        retries: 10
+      volumes:   
+        - postgres_data:/var/lib/postgresql/data
 
   rabbit:
     image: rabbitmq:3-management-alpine
@@ -27,80 +30,53 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "status"]
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 5s
       timeout: 5s
       retries: 15
-
-
-  elasticsearch:
-    image: elasticsearch:7.17.0
-    environment:
-      - discovery.type=single-node
-    ports:
-      - "9200:9200"
-
-  kibana:
-    image: kibana:7.17.0
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    ports:
-      - "5601:5601"
-    depends_on:
-      - elasticsearch
-
-
-
 
   app:
     build: .
     container_name: accounts-app
     volumes:
-      - .:/app
+      - .:/code
     ports:
       - "8000:8000"
-    command: python manage.py runserver 0.0.0.0:8000
+    command: >
+      sh -c "
+      python manage.py migrate &&
+      python manage.py runserver 0.0.0.0:8000
+      "
     depends_on:
+      db:
+        condition: service_healthy
       rabbit:
-        condition: service_started
-      elasticsearch:
-        condition: service_started
-      db: 
-        condition: service_started
-
+        condition: service_healthy
 
   celery_worker:
     build: .
     container_name: accounts-celery-worker
     volumes:
-      - .:/app
+      - .:/code
     command: celery -A core worker -l info
     depends_on:
+      db:
+        condition: service_healthy
       rabbit:
-        condition: service_started
-      app:
-        condition: service_started
-      db: 
-        condition: service_started
-
-
+        condition: service_healthy
 
   celery_beat:
     build: .
     container_name: accounts-celery-beat
     volumes:
-      - .:/app
+      - .:/code
     command: celery -A core beat -l info
     depends_on:
+      db:
+        condition: service_healthy
       rabbit:
-        condition: service_started
-      app:
-        condition: service_started
-      db: 
-        condition: service_started
-
+        condition: service_healthy
 
 volumes:
-  es_data:
-  rabbitmq_data:
   postgres_data:
+  rabbitmq_data:

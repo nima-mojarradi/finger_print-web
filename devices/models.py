@@ -1,5 +1,5 @@
 from django.db import models
-from accounts.models import Company, Address
+from accounts.models import Address
 
 
 class Device(models.Model):
@@ -22,7 +22,7 @@ class Device(models.Model):
 # alipoor 09153870790
 
 class DeviceLog(models.Model):
-    device = models.ForeignKey(Device, on_delete=models.SET_NULL, related_name='logs', null=True, blank=True)
+    device = models.ForeignKey(Device, on_delete=models.SET_DEFAULT, related_name='logs', default=0)
     status = models.CharField(max_length=50)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     port = models.IntegerField(null=True, blank=True)

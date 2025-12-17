@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils.crypto import get_random_string
-from django.core.mail import send_mail
+from django.utils import timezone
 
 ROLES_OPTIONS = (
     ('super_admin', 'Super Admin'),
@@ -22,50 +22,46 @@ FINGER_NAMES = (
     ('left_pinky', 'Left Pinky')
 )
 
+
 class CustomUserManager(BaseUserManager):
 
     def make_random_password(self, length=10):
         return get_random_string(length=length)
-    def create_user(self, nationality_number, first_name, last_name, password=None, **extra_fields):
+    def create_user(self, email, first_name, last_name, password=None, nationality_number=None, **extra_fields):
         if not nationality_number:
             raise ValueError("User must have a nationality number")
 
         user = self.model(
-            nationality_number=nationality_number,
+            email=email,
             first_name=first_name,
             last_name=last_name,
+            nationality_number=nationality_number,
             **extra_fields
         )
 
-        if not password:
-            password = get_random_string(length=10)
+        if password:
             user.set_password(password)
-
-            if hasattr(user, "email") and user.email:
-                try:
-                    send_mail(
-                        subject="رمز موقت حساب شما",
-                        message=f"سلام {user.first_name}!\n\nرمز موقت شما برای ورود به سیستم: {password}\nلطفاً پس از ورود آن را تغییر دهید.",
-                        from_email="no-reply@yourdomain.com",
-                        recipient_list=[user.email],
-                        fail_silently=True,
-                    )
-                except Exception as e:
-                    print("Email send error:", e)
         else:
+            password = self.make_random_password()
             user.set_password(password)
+            # ارسال ایمیل هم میتونی اینجا بذاری
 
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, nationality_number, first_name, last_name, password=None, **extra_fields):
-        extra_fields.setdefault('roles', 'super_admin')
+
+    def create_superuser(self, email, first_name, last_name, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_active', True)
 
-        return self.create_user(
-            nationality_number, first_name, last_name, password, **extra_fields
-        )
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+
+        return self.create_user(email, first_name, last_name, password, **extra_fields)
+
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True, null=True, blank=True)
@@ -77,8 +73,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
+
     USERNAME_FIELD = 'nationality_number'
-    REQUIRED_FIELDS = ['first_name', 'last_name']  # فقط نام و نام خانوادگی کافیه
+    REQUIRED_FIELDS = ['first_name', 'last_name', 'email']  # فقط نام و نام خانوادگی کافیه
 
     objects = CustomUserManager()
 

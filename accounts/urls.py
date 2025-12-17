@@ -16,7 +16,11 @@ from .views import (
     CompanyCreateView,
     CompanyEditView,
     CompanyDeleteView,
-    ShowTempPasswordView
+    ShowTempPasswordView,
+    ArchivedCompanyListView,
+    ArchivedUserListView,
+    ReactivateCompanyView,
+    ReactivateUserView
 )
 
 urlpatterns = [
@@ -40,6 +44,9 @@ urlpatterns = [
     path("companies/", CompanyListView.as_view(), name="company-list"),
     path("companies/create/", CompanyCreateView.as_view(), name="company-create"),
     path("companies/<int:company_id>/edit/", CompanyEditView.as_view(), name="company-edit"),
-    path("companies/<int:company_id>/delete/", CompanyDeleteView.as_view(), name="company-delete"),
-
+    path("companies/<int:pk>/delete/", CompanyDeleteView.as_view(), name="company-delete"),
+    path('archived-users/', ArchivedUserListView.as_view(), name='archived-users'),
+    path('reactivate-user/<str:nationality_number>/', ReactivateUserView.as_view(), name='reactivate-user'),
+    path('archived-companies/', ArchivedCompanyListView.as_view(), name='archived-companies'),
+    path('reactivate-company/<int:company_id>/', ReactivateCompanyView.as_view(), name='reactivate-company'),
 ]
