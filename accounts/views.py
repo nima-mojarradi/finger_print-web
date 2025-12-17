@@ -327,7 +327,7 @@ class FingerprintAttendanceView(APIView):
             return Response({"error": "Fingerprint not recognized"}, status=404)
         user = fingerprint.user
         last_event = AttendanceEvent.objects.filter(user=user).order_by('-timestamp').first()
-        now = timezone.now()
+        now = now()
         if last_event and last_event.event_type == "in":
             time_diff = now - last_event.timestamp
             event_type = "out" if time_diff <= timedelta(hours=24) else "out"
