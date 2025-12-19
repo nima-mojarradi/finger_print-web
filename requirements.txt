@@ -52,3 +52,4 @@ xlutils==2.0.0
 workbook==1.1
 gunicorn==21.2.0
 asgiref==3.10.0
+pillow==10.0.1

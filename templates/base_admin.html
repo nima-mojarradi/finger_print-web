@@ -25,6 +25,12 @@
             <li><a href="{% url 'user-list' %}"><i class="bi bi-person-lines-fill me-2"></i>مدیریت همه کاربران</a></li>
             <li><a href="{% url 'device-list' %}"><i class="bi bi-cpu-fill me-2"></i>مدیریت دستگاه ها</a></li>
             {% endif %}
+
+            {% if user.roles == 'super_admin' %}
+            <li><a href="{% url 'address-list' %}" class="{% if 'address' in request.path %}active{% endif %}">
+                <i class="bi bi-geo-alt-fill me-2"></i>مدیریت آدرس‌ها
+            </a></li>
+            {% endif %}
         
             <li class="mt-4"><a href="{% url 'change_password' %}"><i class="bi bi-lock-fill me-2"></i>تغییر رمز عبور</a></li>
             <li><a href="{% url 'logout' %}" class="text-danger"><i class="bi bi-box-arrow-right me-2"></i>خروج</a></li>

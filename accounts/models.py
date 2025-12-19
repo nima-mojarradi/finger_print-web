@@ -64,7 +64,7 @@ class CustomUserManager(BaseUserManager):
 
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
-    email = models.EmailField(unique=True, null=True, blank=True)
+    email = models.EmailField(unique=True, null=False, blank=False, error_messages={'unique': "A user with that email already exists.",})
     nationality_number = models.CharField(max_length=10, primary_key=True)
     first_name = models.CharField(max_length=250)
     last_name = models.CharField(max_length=250)
@@ -72,12 +72,14 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     roles = models.CharField(max_length=250, choices=ROLES_OPTIONS)
     is_active = models.BooleanField(default=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/',null=True,blank=True,verbose_name="عکس پروفایل"
+    )
 
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'nationality_number'
-    REQUIRED_FIELDS = ['first_name', 'last_name', 'email']  # فقط نام و نام خانوادگی کافیه
+    REQUIRED_FIELDS = ['first_name', 'last_name', 'email']
 
     objects = CustomUserManager()
 

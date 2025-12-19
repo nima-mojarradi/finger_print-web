@@ -1,6 +1,7 @@
 {% extends "base_admin_page.html" %}
 {% load static %}
 {% load widget_tweaks %}
+
 {% block admin_content %}
 <div class="container mt-4">
     <div class="row justify-content-center">
@@ -13,10 +14,32 @@
                     </h3>
                 </div>
                 <div class="card-body p-5">
-                    <form method="post" novalidate>
+                    <form method="post" enctype="multipart/form-data" novalidate>
                         {% csrf_token %}
 
-                        <!-- نام -->
+                        <div class="text-center mb-4">
+                            <div class="profile-preview mx-auto mb-3">
+                                <img src="{% static 'images/default-avatar.png' %}" 
+                                     alt="پیش‌نمایش عکس" 
+                                     class="rounded-circle border border-3 border-primary" 
+                                     style="width: 120px; height: 120px; object-fit: cover;">
+                            </div>
+                            <small class="text-muted">عکس پروفایل (اختیاری)</small>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="{{ form.profile_picture.id_for_label }}" class="form-label">
+                                آپلود عکس پروفایل
+                            </label>
+                            {{ form.profile_picture|add_class:"form-control" }}
+                            {% if form.profile_picture.errors %}
+                                <div class="text-danger small mt-1">{{ form.profile_picture.errors|join:", " }}</div>
+                            {% endif %}
+                            <div class="form-text">
+                                فرمت‌های مجاز: JPG, PNG, GIF | حداکثر حجم: 2 مگابایت
+                            </div>
+                        </div>
+
                         <div class="mb-3">
                             <label for="{{ form.first_name.id_for_label }}" class="form-label">نام</label>
                             {{ form.first_name|add_class:"form-control"|attr:"placeholder:نام کاربر" }}
@@ -25,7 +48,6 @@
                             {% endif %}
                         </div>
 
-                        <!-- نام خانوادگی -->
                         <div class="mb-3">
                             <label for="{{ form.last_name.id_for_label }}" class="form-label">نام خانوادگی</label>
                             {{ form.last_name|add_class:"form-control"|attr:"placeholder:نام خانوادگی" }}
@@ -34,7 +56,6 @@
                             {% endif %}
                         </div>
 
-                        <!-- کد ملی -->
                         <div class="mb-3">
                             <label for="{{ form.nationality_number.id_for_label }}" class="form-label">کد ملی</label>
                             {{ form.nationality_number|add_class:"form-control"|attr:"placeholder:کد ملی (10 رقمی)"|attr:"dir:ltr" }}
@@ -43,7 +64,14 @@
                             {% endif %}
                         </div>
 
-                        <!-- شرکت -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">ایمیل</label>
+                            {{ form.email|add_class:"form-control"|attr:"placeholder:example@domain.com" }}
+                            {% if form.email.errors %}
+                                <div class="text-danger small mt-1">{{ form.email.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
                         <div class="mb-3">
                             <label for="{{ form.company.id_for_label }}" class="form-label">شرکت</label>
                             {{ form.company|add_class:"form-select" }}
@@ -52,7 +80,6 @@
                             {% endif %}
                         </div>
 
-                        <!-- نقش -->
                         <div class="mb-3">
                             <label for="{{ form.roles.id_for_label }}" class="form-label">نقش</label>
                             {{ form.roles|add_class:"form-select" }}
@@ -61,7 +88,6 @@
                             {% endif %}
                         </div>
 
-                        <!-- انتخاب انگشت جدید -->
                         <div class="mb-3">
                             <label for="{{ form.selected_finger.id_for_label }}" class="form-label">
                                 انگشت برای ثبت اثرانگشت
@@ -72,12 +98,12 @@
                             {% endif %}
                         </div>
 
-                        <div class="d-grid gap-2 mt-4">
-                            <button type="submit" class="btn btn-success btn-lg">
+                        <div class="d-grid gap-2 mt-5">
+                            <button type="submit" class="btn btn-success btn-lg shadow-sm">
                                 <i class="bi bi-check-circle"></i>
                                 ایجاد کاربر و ادامه به ثبت اثرانگشت
                             </button>
-                            <a href="{% url 'user-list' %}" class="btn btn-secondary">
+                            <a href="{% url 'user-list' %}" class="btn btn-outline-secondary btn-lg">
                                 <i class="bi bi-arrow-left"></i>
                                 بازگشت به لیست کاربران
                             </a>

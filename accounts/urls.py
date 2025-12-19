@@ -20,7 +20,11 @@ from .views import (
     ArchivedCompanyListView,
     ArchivedUserListView,
     ReactivateCompanyView,
-    ReactivateUserView
+    ReactivateUserView,
+    AddressCreateView,
+    AddressEditView,
+    AddressDeleteView,
+    AddressListView,
 )
 
 urlpatterns = [
@@ -49,4 +53,8 @@ urlpatterns = [
     path('reactivate-user/<str:nationality_number>/', ReactivateUserView.as_view(), name='reactivate-user'),
     path('archived-companies/', ArchivedCompanyListView.as_view(), name='archived-companies'),
     path('reactivate-company/<int:company_id>/', ReactivateCompanyView.as_view(), name='reactivate-company'),
+    path('addresses/', AddressListView.as_view(), name='address-list'),
+    path('addresses/create/', AddressCreateView.as_view(), name='address-create'),
+    path('addresses/<int:address_id>/edit/', AddressEditView.as_view(), name='address-edit'),
+    path('addresses/<int:address_id>/delete/', AddressDeleteView.as_view(), name='address-delete'),
 ]

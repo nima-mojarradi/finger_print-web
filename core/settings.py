@@ -22,6 +22,14 @@ SECRET_KEY = 'django-insecure-)pb)i6gy1_^a-2xhf-fy4vy$%ng=bjf%fzt=-fux@0hxaxjs_!
 DEBUG = True
 ALLOWED_HOSTS = []
 
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+SESSION_COOKIE_AGE = 1209600 
+
+SESSION_COOKIE_SECURE = not DEBUG
+
+SESSION_COOKIE_HTTPONLY = True
+
 # ========================
 # Applications
 # ========================
@@ -96,22 +104,22 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # ========================
 # Database
 # ========================
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'accounts_database',
-        'USER': 'nima',
-        'PASSWORD': '3858nima',
-        'HOST': 'db',
-        'PORT': 5432,
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'accounts_database',
+#         'USER': 'nima',
+#         'PASSWORD': '3858nima',
+#         'HOST': 'db',
+#         'PORT': 5432,
+#     }
+# }
 # Password validation
 # ========================
 AUTH_PASSWORD_VALIDATORS = [
@@ -178,6 +186,10 @@ ELASTICSEARCH_INDEX = 'django_request_logs'
 LOGSTASH_HOST = os.getenv("LOGSTASH_HOST", "localhost")
 LOGSTASH_PORT = int(os.getenv("LOGSTASH_PORT", "5959"))
 
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 class JsonFormatter(logging.Formatter):
     """Custom JSON formatter for logs"""
     def format(self, record):
@@ -221,3 +233,15 @@ LOGGING = {
     },
 }
 
+
+# برای تست - ایمیل در کنسول چاپ میشه
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# وقتی SMTP رو تنظیم کردی، این رو جایگزین کن:
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'nima.mojarradi83@gmail.com'
+EMAIL_HOST_PASSWORD = 'hirf zlle iahz eood'
+DEFAULT_FROM_EMAIL = 'nima.mojarradi83@gmail.com'

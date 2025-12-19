@@ -15,8 +15,8 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from .serializers import CompanySerializer
-from .models import CustomUser, Company, Fingerprint, FINGER_NAMES
-from .forms import LoginForm, CustomUserForm, UserEditForm, CompanyForm
+from .models import CustomUser, Company, Fingerprint, Address, FINGER_NAMES
+from .forms import LoginForm, CustomUserForm, UserEditForm, CompanyForm, AddressForm
 from .serializers import UserUpdateSerializer
 from attendance.models import AttendanceEvent
 from .utils import decode_base64
@@ -40,18 +40,23 @@ class LoginView(View):
         if form.is_valid():
             nationality_number = form.cleaned_data.get("nationality_number")
             password = form.cleaned_data.get("password")
+            remember_me = form.cleaned_data.get("remember_me", False)  
             user = authenticate(request, username=nationality_number, password=password)
 
             if user:
                 login(request, user)
+
+                if remember_me:
+                    request.session.set_expiry(1209600) 
+                else:
+                    request.session.set_expiry(0)
+
                 messages.success(request, f"ورود موفقیت‌آمیز، خوش آمدید {user.first_name}!")
                 return redirect('profile')
-            
             else:
                 form.add_error(None, "کد ملی یا رمز عبور اشتباه است.")
 
         return render(request, 'login.html', {'form': form})
-
 
 class LogoutView(View):
     def get(self, request):
@@ -244,7 +249,7 @@ class UserEditView(UpdateView):
     
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user  # کاربر جاری رو بده
+        kwargs['user'] = self.request.user  
         return kwargs
 
 class UserDetailView(APIView):
@@ -551,3 +556,71 @@ class ReactivateCompanyView(LoginRequiredMixin, View):
 
         messages.success(request, "شرکت با موفقیت بازیابی شد.")
         return redirect('company-list')
+    
+
+
+class AddressListView(LoginRequiredMixin, View):
+    template_name = 'address_list.html'
+
+    def get(self, request):
+        if request.user.roles != "super_admin":
+            messages.error(request, "فقط سوپر ادمین می‌تواند آدرس‌ها را مدیریت کند.")
+            return redirect('profile')
+
+        addresses = Address.objects.all().order_by('title')
+        return render(request, self.template_name, {"addresses": addresses})
+
+
+class AddressCreateView(LoginRequiredMixin, CreateView):
+    model = Address
+    form_class = AddressForm
+    template_name = "address_create.html"
+    success_url = reverse_lazy('address-list')
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.roles != "super_admin":
+            messages.error(request, "دسترسی غیرمجاز")
+            return redirect('profile')
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        messages.success(self.request, "آدرس با موفقیت ایجاد شد.")
+        return super().form_valid(form)
+
+
+class AddressEditView(LoginRequiredMixin, UpdateView):
+    model = Address
+    form_class = AddressForm
+    template_name = "address_edit.html"
+    success_url = reverse_lazy('address-list')
+    pk_url_kwarg = 'address_id'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.roles != "super_admin":
+            messages.error(request, "دسترسی غیرمجاز")
+            return redirect('profile')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        messages.success(self.request, "آدرس با موفقیت ویرایش شد.")
+        return super().get_success_url()
+
+
+class AddressDeleteView(LoginRequiredMixin, View):
+    def post(self, request, address_id):
+        if request.user.roles != "super_admin":
+            return JsonResponse({"error": "فقط سوپر ادمین می‌تواند حذف کند."}, status=403)
+
+        address = get_object_or_404(Address, id=address_id)
+
+        if address.company_set.exists():
+            return JsonResponse({
+                "success": False,
+                "message": "این آدرس به شرکت(هایی) متصل است و نمی‌توان آن را حذف کرد."
+            })
+
+        address.delete()
+        return JsonResponse({
+            "success": True,
+            "message": f"آدرس «{address.title}» با موفقیت حذف شد."
+        })
