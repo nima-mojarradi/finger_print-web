@@ -83,7 +83,7 @@ The backend routes are structured to accept JSON payloads from the microcontroll
 
 ## 🤝 Hardware Integration
 
-This web backend is explicitly designed to operate in tandem with the [finger_print_device](https://www.google.com/search?q=https://github.com/nima-mojarradi/finger_print_device) repository. Flash the C++ firmware to your ESP32 units and configure them to point to this server's local IP address to complete the system architecture.
+This web backend is explicitly designed to operate in tandem with the [finger_print_device](https://github.com/nima-mojarradi/finger_print_device) repository. Flash the C++ firmware to your ESP32 units and configure them to point to this server's local IP address to complete the system architecture.
 
 ## 📄 License
 
