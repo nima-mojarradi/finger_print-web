@@ -1,4 +1,3 @@
-```markdown
 # IoT Fingerprint Attendance System - Web Dashboard
 
 This repository contains the Django-based web administration panel and REST API backend for the IoT Employee Attendance Logging System. It acts as the central hub, receiving telemetry and biometric authentication events from physical ESP32 scanner endpoints, managing employee profiles, and providing administrators with comprehensive attendance reports.
